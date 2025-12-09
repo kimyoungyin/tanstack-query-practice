@@ -1,0 +1,11 @@
+{
+    "id": 16,
+    "title": "새로운 포스트",
+    "content": "이것은 새로 생성된 포스트입니다.",
+    "authorId": 1,
+    "authorName": "김철수",
+    "likes": 0,
+    "comments": 0,
+    "createdAt": "2024-05-16T12:00:00Z",
+    "message": "포스트가 성공적으로 생성되었습니다."
+}
