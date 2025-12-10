@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            staleTime: 60 * 1000, // 1분
-            gcTime: 60 * 1000, // 1분
+            staleTime: Number(localStorage.getItem("staleTime")) || 60 * 1000, // 1분
+            gcTime: Number(localStorage.getItem("gcTime")) || 120 * 1000, // 2분
         },
     },
 });
