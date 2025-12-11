@@ -1,27 +1,44 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import StatusBox from "@/components/StatusBox";
 
 export default function HomePage() {
     const queryClient = useQueryClient();
 
+    const [hasPostsCache, setHasPostsCache] = useState(false);
+    const [hasUsersCache, setHasUsersCache] = useState(false);
+    const [hasInfinitePostsCache, setHasInfinitePostsCache] = useState(false);
+
     // 캐시 상태를 확인하는 함수
     const handleCheckCache = () => {
-        console.log("=== 현재 캐시 상태 ===");
-        console.log("Posts 캐시:", queryClient.getQueryData(["posts"]));
-        console.log("Users 캐시:", queryClient.getQueryData(["users"]));
-        console.log("모든 쿼리 캐시:", queryClient.getQueryCache().getAll());
+        setHasPostsCache(!!queryClient.getQueryData(["posts"]));
+        setHasUsersCache(!!queryClient.getQueryData(["users"]));
+        setHasInfinitePostsCache(
+            !!queryClient.getQueryData(["infinite-posts"])
+        );
     };
+    // 1초마다 캐시 상태를 확인하는 효과 (첫 렌더링 직후 즉시 실행)
+    useEffect(() => {
+        // 첫 렌더링 직후 즉시 실행
+        handleCheckCache();
+        // 그 다음 1초마다 실행
+        const interval = setInterval(() => {
+            handleCheckCache();
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // 모든 캐시를 무효화하는 함수
     const handleInvalidateAll = () => {
         queryClient.invalidateQueries();
-        console.log("모든 캐시가 무효화되었습니다");
+        handleCheckCache();
     };
 
     // 특정 캐시를 제거하는 함수
     const handleClearCache = () => {
         queryClient.clear();
-        console.log("모든 캐시가 제거되었습니다");
+        handleCheckCache();
     };
 
     return (
@@ -41,37 +58,46 @@ export default function HomePage() {
 
             <div style={{ marginBottom: "30px" }}>
                 <h2>🧪 캐시 디버깅 도구</h2>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <button
-                        onClick={handleCheckCache}
-                        style={{ padding: "8px 16px" }}
-                    >
-                        캐시 상태 확인
-                    </button>
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "10px",
+                        marginBottom: "20px",
+                    }}
+                >
                     <button
                         onClick={handleInvalidateAll}
                         style={{ padding: "8px 16px" }}
                     >
-                        모든 캐시 무효화
+                        모든 캐시 무효화(queryClient.invalidateQueries)
                     </button>
                     <button
                         onClick={handleClearCache}
                         style={{ padding: "8px 16px" }}
                     >
-                        캐시 완전 삭제
+                        캐시 완전 삭제(queryClient.clear)
                     </button>
                 </div>
-                <p
-                    style={{
-                        fontSize: "14px",
-                        color: "#666",
-                        marginTop: "10px",
-                    }}
-                >
-                    💡 개발자 도구 콘솔을 열어서 캐시 상태를 확인해보세요
-                </p>
+                <hr />
+                <h3>캐시 상태: 1초마다 갱신됩니다.</h3>
+                <StatusBox
+                    status={hasPostsCache}
+                    title="Posts 캐시"
+                    description={hasPostsCache ? "있음" : "없음"}
+                />
+                <StatusBox
+                    status={hasUsersCache}
+                    title="Users 캐시"
+                    description={hasUsersCache ? "있음" : "없음"}
+                />
+                <StatusBox
+                    status={hasInfinitePostsCache}
+                    title="Infinite Posts 캐시"
+                    description={hasInfinitePostsCache ? "있음" : "없음"}
+                />
             </div>
-
+            <hr />
             <div style={{ marginBottom: "30px" }}>
                 <h2>🔗 페이지 이동</h2>
                 <nav

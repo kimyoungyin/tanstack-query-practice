@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DEFAULT from "@/constants";
+import StatusBox from "@/components/StatusBox";
 
 // 임의 데이터 타입 정의
 interface Post {
@@ -113,12 +114,6 @@ export default function PostsPage() {
         createPostMutation.mutate(newPost);
     };
 
-    // 캐시 상태 확인
-    const handleCheckCache = () => {
-        const cachedData = queryClient.getQueryData(["posts"]);
-        console.log("📦 현재 Posts 캐시:", cachedData);
-    };
-
     return (
         <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
             <div style={{ marginBottom: "20px" }}>
@@ -129,54 +124,43 @@ export default function PostsPage() {
             <h1>📝 게시물 목록</h1>
             <h2>부제: useQuery 알아보기</h2>
             {/* 데이터 상태 표시 */}
-            <div
-                style={{
-                    backgroundColor: isFetching ? "#fff3cd" : "#d4edda",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    marginBottom: "20px",
-                }}
-            >
-                <strong>상태:</strong>{" "}
-                {isFetching
-                    ? isPending
+            <StatusBox
+                status={isFetching || isPending}
+                title="상태"
+                description={
+                    isPending
                         ? "🔄 게시물 로딩 중...(pending)"
-                        : "🔄 백그라운드에서 업데이트 중...(fetching)"
-                    : "✅ 최신 데이터(fresh)"}
-            </div>
+                        : isFetching
+                        ? "🔄 백그라운드에서 업데이트 중...(fetching)"
+                        : "✅ 최신 데이터(fresh)"
+                }
+            />
+
             {/* isPending */}
-            <div
-                style={{
-                    backgroundColor: isPending ? "#fff3cd" : "#d4edda",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    marginBottom: "20px",
-                }}
-            >
-                <strong>isPending:</strong> {isPending.toString()}
-            </div>
+            <StatusBox
+                status={isPending}
+                title="isPending"
+                description={isPending.toString()}
+            />
+
             {/* isFetching */}
-            <div
-                style={{
-                    backgroundColor: isFetching ? "#fff3cd" : "#d4edda",
-                    padding: "10px",
-                    borderRadius: "4px",
-                    marginBottom: "20px",
-                }}
-            >
-                <strong>isFetching:</strong> {isFetching.toString()}
-            </div>
+            <StatusBox
+                status={isFetching}
+                title="isFetching"
+                description={isFetching.toString()}
+            />
             {/* 컨트롤 버튼들 */}
             <div
                 style={{
                     marginBottom: "20px",
                     display: "flex",
+                    flexDirection: "column",
                     gap: "10px",
                     flexWrap: "wrap",
                 }}
             >
                 <button onClick={() => refetch()} disabled={isFetching}>
-                    🔄 수동 새로고침
+                    🔄 수동 새로고침 (refetch)
                 </button>
                 <button
                     onClick={handleCreatePost}
@@ -184,15 +168,21 @@ export default function PostsPage() {
                 >
                     {createPostMutation.isPending
                         ? "생성 중..."
-                        : "📝 새 게시물 추가"}
+                        : "📝 새 게시물 추가 (createPostMutation.mutate)"}
                 </button>
-                <button onClick={handleCheckCache}>📦 캐시 상태 확인</button>
                 <button
                     onClick={() =>
                         queryClient.invalidateQueries({ queryKey: ["posts"] })
                     }
                 >
-                    🗑️ 캐시 무효화(stale 처리)
+                    🗑️ 캐시 무효화(stale 처리, queryClient.invalidateQueries)
+                </button>
+                <button
+                    onClick={() =>
+                        queryClient.removeQueries({ queryKey: ["posts"] })
+                    }
+                >
+                    💥 캐시 완전 삭제(queryClient.removeQueries)
                 </button>
             </div>
 
