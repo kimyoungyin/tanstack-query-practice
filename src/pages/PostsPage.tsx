@@ -119,20 +119,6 @@ export default function PostsPage() {
         console.log("📦 현재 Posts 캐시:", cachedData);
     };
 
-    if (isPending) {
-        return (
-            <div style={{ padding: "20px", textAlign: "center" }}>
-                <h2>🔄 게시물 로딩 중...(pending)</h2>
-                <p>
-                    {isFirstFetch
-                        ? "첫 번째 로딩입니다."
-                        : "gcTime 이후라 메모리에서 삭제되었습니다. 다시 로딩합니다."}
-                    이후에는 캐시된 데이터를 먼저 보여줍니다.
-                </p>
-            </div>
-        );
-    }
-
     return (
         <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
             <div style={{ marginBottom: "20px" }}>
@@ -153,8 +139,32 @@ export default function PostsPage() {
             >
                 <strong>상태:</strong>{" "}
                 {isFetching
-                    ? "🔄 백그라운드에서 업데이트 중...(stale)"
+                    ? isPending
+                        ? "🔄 게시물 로딩 중...(pending)"
+                        : "🔄 백그라운드에서 업데이트 중...(fetching)"
                     : "✅ 최신 데이터(fresh)"}
+            </div>
+            {/* isPending */}
+            <div
+                style={{
+                    backgroundColor: isPending ? "#fff3cd" : "#d4edda",
+                    padding: "10px",
+                    borderRadius: "4px",
+                    marginBottom: "20px",
+                }}
+            >
+                <strong>isPending:</strong> {isPending.toString()}
+            </div>
+            {/* isFetching */}
+            <div
+                style={{
+                    backgroundColor: isFetching ? "#fff3cd" : "#d4edda",
+                    padding: "10px",
+                    borderRadius: "4px",
+                    marginBottom: "20px",
+                }}
+            >
+                <strong>isFetching:</strong> {isFetching.toString()}
             </div>
             {/* 컨트롤 버튼들 */}
             <div
@@ -185,38 +195,50 @@ export default function PostsPage() {
                     🗑️ 캐시 무효화(stale 처리)
                 </button>
             </div>
+
             {/* 게시물 목록 */}
-            <div style={{ display: "grid", gap: "15px" }}>
-                {posts?.map((post) => (
-                    <div
-                        key={post.id}
-                        style={{
-                            border: "1px solid #ddd",
-                            borderRadius: "8px",
-                            padding: "15px",
-                            backgroundColor: "#f8f9fa",
-                        }}
-                    >
-                        <h3 style={{ margin: "0 0 10px 0" }}>
-                            <Link
-                                to={`/posts/${post.id}`}
-                                style={{
-                                    textDecoration: "none",
-                                    color: "#007bff",
-                                }}
-                            >
-                                {post.title}
-                            </Link>
-                        </h3>
-                        <p style={{ margin: "0 0 10px 0", color: "#666" }}>
-                            {post.body}
-                        </p>
-                        <small style={{ color: "#888" }}>
-                            작성자 ID: {post.userId}
-                        </small>
-                    </div>
-                ))}
-            </div>
+            {isPending ? (
+                <div style={{ padding: "20px", textAlign: "center" }}>
+                    <h2>🔄 게시물 로딩 중...(pending)</h2>
+                    <p>
+                        {isFirstFetch
+                            ? "첫 번째 로딩입니다."
+                            : "gcTime 이후라 메모리에서 삭제되었습니다. 다시 로딩합니다."}
+                    </p>
+                </div>
+            ) : (
+                <div style={{ display: "grid", gap: "15px" }}>
+                    {posts?.map((post) => (
+                        <div
+                            key={post.id}
+                            style={{
+                                border: "1px solid #ddd",
+                                borderRadius: "8px",
+                                padding: "15px",
+                                backgroundColor: "#f8f9fa",
+                            }}
+                        >
+                            <h3 style={{ margin: "0 0 10px 0" }}>
+                                <Link
+                                    to={`/posts/${post.id}`}
+                                    style={{
+                                        textDecoration: "none",
+                                        color: "#007bff",
+                                    }}
+                                >
+                                    {post.title}
+                                </Link>
+                            </h3>
+                            <p style={{ margin: "0 0 10px 0", color: "#666" }}>
+                                {post.body}
+                            </p>
+                            <small style={{ color: "#888" }}>
+                                작성자 ID: {post.userId}
+                            </small>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
