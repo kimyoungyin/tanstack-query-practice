@@ -3,14 +3,6 @@ import { Link } from "react-router-dom";
 import DEFAULT from "@/constants";
 import StatusBox from "@/components/StatusBox";
 
-// 임의 데이터 타입 정의
-interface Post {
-    id: number;
-    title: string;
-    body: string;
-    userId: number;
-}
-
 // 첫 번째 로딩(isPending일 때 첫 로딩인지, gcTime 이후라 리페칭하는 것인지 확인하기 위함)
 let isFirstFetch = true;
 

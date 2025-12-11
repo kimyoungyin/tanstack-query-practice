@@ -1,14 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-// 임의 데이터 타입 정의
-interface Post {
-    id: number;
-    title: string;
-    body: string;
-    userId: number;
-}
-
 interface PostsResponse {
     posts: Post[];
     nextCursor: number | null;

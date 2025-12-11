@@ -1,15 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-// 임의 데이터 타입 정의
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    company: string;
-    posts: number;
-}
-
 // Mock API 함수
 const fetchUsers = async (): Promise<User[]> => {
     console.log("👥 Users API 호출됨");

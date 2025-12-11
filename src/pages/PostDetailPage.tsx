@@ -1,35 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 
-// 임의 데이터 타입 정의
-interface PostDetail {
-    id: number;
-    title: string;
-    body: string;
-    userId: number;
-    author: string;
-    createdAt: string;
-    tags: string[];
-    likes: number;
-    comments: Comment[];
-}
-
-interface Comment {
-    id: number;
-    postId: number;
-    author: string;
-    content: string;
-    createdAt: string;
-}
-
-// 게시물 목록 타입 (PostsPage와 동일)
-interface Post {
-    id: number;
-    title: string;
-    body: string;
-    userId: number;
-}
-
 // Mock API 함수들
 const fetchPostDetail = async (postId: string): Promise<PostDetail> => {
     console.log(`📖 게시물 ${postId} 상세 정보 로딩...`);
