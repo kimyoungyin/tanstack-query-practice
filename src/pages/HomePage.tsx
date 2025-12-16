@@ -71,12 +71,21 @@ export default function HomePage() {
                         style={{ padding: "8px 16px" }}
                     >
                         모든 캐시 무효화(queryClient.invalidateQueries)
+                        <div>
+                            - 학습 포인트: 캐시데이터는 제공되지만, stale하다고
+                            간주됩니다. 다시 쿼리에 접근하면 refetch가
+                            진행됩니다.
+                        </div>
                     </button>
                     <button
                         onClick={handleClearCache}
                         style={{ padding: "8px 16px" }}
                     >
                         캐시 완전 삭제(queryClient.clear)
+                        <div>
+                            - 학습 포인트: 캐시데이터가 완전히 삭제됩니다. 다시
+                            쿼리에 접근하면 pending 상태가 됩니다.
+                        </div>
                     </button>
                 </div>
                 <hr />
