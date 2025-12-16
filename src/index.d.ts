@@ -14,7 +14,7 @@ interface PostDetail {
     createdAt: string;
     tags: string[];
     likes: number;
-    comments: Comment[];
+    comments: PostComment[];
 }
 
 interface User {
@@ -25,7 +25,7 @@ interface User {
     posts: number;
 }
 
-interface Comment {
+interface PostComment {
     id: number;
     postId: number;
     author: string;

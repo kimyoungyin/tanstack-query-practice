@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import StatusBox from "@/components/StatusBox";
+import { useEffectEvent } from "react";
 
 export default function HomePage() {
     const queryClient = useQueryClient();
@@ -11,13 +12,14 @@ export default function HomePage() {
     const [hasInfinitePostsCache, setHasInfinitePostsCache] = useState(false);
 
     // 캐시 상태를 확인하는 함수
-    const handleCheckCache = () => {
+    // useEffectEvent는 props나 state의 최신값을 사용할 수 있습니다.
+    const handleCheckCache = useEffectEvent(() => {
         setHasPostsCache(!!queryClient.getQueryData(["posts"]));
         setHasUsersCache(!!queryClient.getQueryData(["users"]));
         setHasInfinitePostsCache(
             !!queryClient.getQueryData(["infinite-posts"])
         );
-    };
+    });
     // 1초마다 캐시 상태를 확인하는 효과 (첫 렌더링 직후 즉시 실행)
     useEffect(() => {
         // 첫 렌더링 직후 즉시 실행
@@ -32,13 +34,11 @@ export default function HomePage() {
     // 모든 캐시를 무효화하는 함수
     const handleInvalidateAll = () => {
         queryClient.invalidateQueries();
-        handleCheckCache();
     };
 
     // 특정 캐시를 제거하는 함수
     const handleClearCache = () => {
         queryClient.clear();
-        handleCheckCache();
     };
 
     return (
