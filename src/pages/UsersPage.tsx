@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import DEFAULT from "@/constants";
+import { useEffect, useState, useEffectEvent } from "react";
 
 // Mock API 함수
 const fetchUsers = async (): Promise<User[]> => {
-    console.log("👥 Users API 호출됨");
-
     // 네트워크 지연 시뮬레이션
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, DEFAULT.API_DELAY));
 
     // 임의 데이터 반환
     return [
@@ -51,34 +51,50 @@ const fetchUsers = async (): Promise<User[]> => {
 export default function UsersPage() {
     const queryClient = useQueryClient();
 
-    // 사용자 목록 조회 쿼리 - Posts와 다른 캐시 설정
-    const {
-        data: users,
-        isLoading,
-        isError,
-        error,
-        isFetching,
-        dataUpdatedAt,
-        refetch,
-    } = useQuery({
+    // 사용자 목록 조회 쿼리
+    const { data: users, isPending } = useQuery({
         queryKey: ["users"],
         queryFn: fetchUsers,
-        staleTime: 2 * 60 * 1000, // 2분간 fresh (Posts보다 짧음)
-        gcTime: 5 * 60 * 1000, // 5분간 캐시 보관 (Posts보다 짧음)
-        refetchOnWindowFocus: true, // 윈도우 포커스시 리페치 활성화
-        refetchInterval: 30000, // 30초마다 자동 리페치
-        refetchIntervalInBackground: false, // 백그라운드에서는 자동 리페치 비활성화
     });
+
+    const [userCaches, setUserCaches] = useState<boolean[]>(
+        users?.map((user) => {
+            return queryClient.getQueryData(["user", user.id]) !== undefined;
+        }) ?? new Array(5).fill(false)
+    );
+
+    const updateUserCaches = useEffectEvent(() => {
+        setUserCaches(
+            users?.map((user) => {
+                return (
+                    queryClient.getQueryData(["user", user.id]) !== undefined
+                );
+            }) ?? new Array(5).fill(false)
+        );
+    });
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            updateUserCaches();
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     // 특정 사용자 데이터를 미리 캐시하는 함수
     const handlePrefetchUser = (userId: number) => {
         queryClient.prefetchQuery({
             queryKey: ["user", userId],
             queryFn: async () => {
-                console.log(`🔮 사용자 ${userId} 데이터 미리 가져오기`);
-                await new Promise((resolve) => setTimeout(resolve, 500));
+                await new Promise((resolve) =>
+                    setTimeout(resolve, DEFAULT.API_DELAY)
+                );
 
                 const user = users?.find((u) => u.id === userId);
+                setUserCaches((prev) => {
+                    return prev.map((cache, index) =>
+                        index === userId - 1 ? true : cache
+                    );
+                });
                 return user
                     ? {
                           ...user,
@@ -88,52 +104,8 @@ export default function UsersPage() {
                       }
                     : null;
             },
-            staleTime: 5 * 60 * 1000,
         });
     };
-
-    // 캐시 상태 분석
-    const handleAnalyzeCache = () => {
-        const usersCache = queryClient.getQueryData(["users"]);
-        const postsCache = queryClient.getQueryData(["posts"]);
-        const allQueries = queryClient.getQueryCache().getAll();
-
-        console.log("=== 캐시 분석 ===");
-        console.log("👥 Users 캐시:", usersCache);
-        console.log("📝 Posts 캐시:", postsCache);
-        console.log("📊 전체 쿼리 개수:", allQueries.length);
-        console.log(
-            "⏰ Users 마지막 업데이트:",
-            new Date(dataUpdatedAt).toLocaleTimeString()
-        );
-
-        allQueries.forEach((query) => {
-            console.log(
-                `🔑 Query Key: ${JSON.stringify(query.queryKey)}, State: ${
-                    query.state.status
-                }`
-            );
-        });
-    };
-
-    if (isLoading) {
-        return (
-            <div style={{ padding: "20px", textAlign: "center" }}>
-                <h2>👥 사용자 목록 로딩 중...</h2>
-                <p>Users 페이지는 Posts보다 로딩이 조금 더 오래 걸립니다.</p>
-            </div>
-        );
-    }
-
-    if (isError) {
-        return (
-            <div style={{ padding: "20px", textAlign: "center", color: "red" }}>
-                <h2>❌ 사용자 데이터 로딩 실패</h2>
-                <p>{error?.message}</p>
-                <button onClick={() => refetch()}>다시 시도</button>
-            </div>
-        );
-    }
 
     return (
         <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -144,184 +116,140 @@ export default function UsersPage() {
             </div>
 
             <h1>👥 사용자 목록</h1>
-
-            {/* 상태 및 설정 정보 */}
-            <div
-                style={{
-                    backgroundColor: "#e7f3ff",
-                    padding: "15px",
-                    borderRadius: "4px",
-                    marginBottom: "20px",
-                }}
-            >
-                <h3>⚙️ 이 페이지의 캐시 설정</h3>
-                <ul style={{ margin: "10px 0", paddingLeft: "20px" }}>
-                    <li>
-                        <strong>staleTime:</strong> 2분 (Posts: 5분)
-                    </li>
-                    <li>
-                        <strong>gcTime:</strong> 5분 (Posts: 10분)
-                    </li>
-                    <li>
-                        <strong>refetchInterval:</strong> 30초마다 자동 새로고침
-                    </li>
-                    <li>
-                        <strong>refetchOnWindowFocus:</strong> 활성화
-                    </li>
-                </ul>
-                <div
-                    style={{
-                        backgroundColor: isFetching ? "#fff3cd" : "#d4edda",
-                        padding: "8px",
-                        borderRadius: "4px",
-                        marginTop: "10px",
-                    }}
-                >
-                    <strong>현재 상태:</strong>{" "}
-                    {isFetching ? "🔄 업데이트 중..." : "✅ 최신 상태"}
-                </div>
-            </div>
-
-            {/* 컨트롤 버튼들 */}
-            <div
-                style={{
-                    marginBottom: "20px",
-                    display: "flex",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                }}
-            >
-                <button onClick={() => refetch()} disabled={isFetching}>
-                    🔄 수동 새로고침
-                </button>
-                <button onClick={handleAnalyzeCache}>📊 캐시 분석</button>
-                <button
-                    onClick={() =>
-                        queryClient.invalidateQueries({ queryKey: ["users"] })
-                    }
-                >
-                    🗑️ Users 캐시 무효화
-                </button>
-                <button
-                    onClick={() =>
-                        queryClient.removeQueries({ queryKey: ["users"] })
-                    }
-                >
-                    💥 Users 캐시 완전 삭제
-                </button>
-            </div>
-
-            {/* 사용자 목록 */}
-            <div style={{ display: "grid", gap: "15px" }}>
-                {users?.map((user) => (
-                    <div
-                        key={user.id}
-                        style={{
-                            border: "1px solid #ddd",
-                            borderRadius: "8px",
-                            padding: "15px",
-                            backgroundColor: "#f8f9fa",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                            }}
-                        >
-                            <div>
-                                <h3 style={{ margin: "0 0 5px 0" }}>
-                                    <Link
-                                        to={`/users/${user.id}`}
-                                        style={{
-                                            textDecoration: "none",
-                                            color: "#007bff",
-                                        }}
-                                        onMouseEnter={() =>
-                                            handlePrefetchUser(user.id)
-                                        }
-                                    >
-                                        {user.name}
-                                    </Link>
-                                </h3>
-                                <p
-                                    style={{
-                                        margin: "0 0 5px 0",
-                                        color: "#666",
-                                    }}
-                                >
-                                    {user.email}
-                                </p>
-                                <p
-                                    style={{
-                                        margin: "0 0 5px 0",
-                                        fontSize: "14px",
-                                    }}
-                                >
-                                    🏢 {user.company}
-                                </p>
-                                <p
-                                    style={{
-                                        margin: "0",
-                                        fontSize: "14px",
-                                        color: "#888",
-                                    }}
-                                >
-                                    📝 게시물 {user.posts}개
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => handlePrefetchUser(user.id)}
-                                style={{
-                                    padding: "4px 8px",
-                                    fontSize: "12px",
-                                    backgroundColor: "#e9ecef",
-                                    border: "1px solid #ddd",
-                                    borderRadius: "4px",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                🔮 미리 로드
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+            <h2>부제: prefetchQuery로 상세 데이터 미리 불러오기</h2>
 
             {/* 학습 노트 */}
             <div
                 style={{
-                    marginTop: "30px",
+                    marginBottom: "20px",
                     padding: "15px",
                     backgroundColor: "#fff3cd",
                     borderRadius: "4px",
                 }}
             >
                 <h3>🎓 학습 포인트</h3>
-                <ul>
-                    <li>
-                        <strong>다른 캐시 설정:</strong> Posts와 다른 staleTime,
-                        gcTime 적용
-                    </li>
-                    <li>
-                        <strong>자동 리페치:</strong> 30초마다 백그라운드에서
-                        데이터 업데이트
-                    </li>
-                    <li>
-                        <strong>Prefetch:</strong> 마우스 호버시 상세 페이지
-                        데이터 미리 로드
-                    </li>
-                    <li>
-                        <strong>윈도우 포커스:</strong> 다른 탭에서 돌아올 때
-                        자동 새로고침
-                    </li>
-                    <li>
-                        <strong>캐시 비교:</strong> Posts와 Users의 캐시 상태
-                        비교 가능
-                    </li>
-                </ul>
+                <p>
+                    개별 사용자 쿼리 키: ["user", userId]로 사용자별 상세
+                    데이터를 별도 캐시
+                </p>
+                <p>
+                    버튼 기반 prefetch: "🔮 미리 로드" 버튼으로 명시적으로
+                    prefetch 트리거
+                </p>
+                <p>
+                    <strong>
+                        이미 prefetch된 유저의 상세 정보 데이터(캐시)를 접근하는
+                        속도가 일반 접근보다 빠름을 확인
+                    </strong>
+                </p>
+                <p>
+                    추후 응용 가능성: hover 시 prefetch를 트리거하도록 설정하면,
+                    사용자 몰래 백그라운드에서 클릭하려한 상세 페이지 데이터를
+                    미리 로드할 수 있음
+                </p>
             </div>
+            {isPending ? (
+                <div style={{ padding: "20px", textAlign: "center" }}>
+                    <h2>🔄 사용자 목록 로딩 중...(pending)</h2>
+                </div>
+            ) : (
+                <>
+                    <p>prefetch 캐시 상태: 1초마다 갱신됩니다.</p>
+                    {/* 사용자 목록 */}
+                    <div style={{ display: "grid", gap: "15px" }}>
+                        {users?.map((user) => (
+                            <div
+                                key={user.id}
+                                style={{
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    padding: "15px",
+                                    backgroundColor: "#f8f9fa",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                    }}
+                                >
+                                    <div>
+                                        <h3 style={{ margin: "0 0 5px 0" }}>
+                                            <Link
+                                                to={`/users/${user.id}`}
+                                                style={{
+                                                    textDecoration: "none",
+                                                    color: "#007bff",
+                                                }}
+                                                // onMouseEnter={() =>
+                                                //     handlePrefetchUser(user.id)
+                                                // }
+                                            >
+                                                {user.name}
+                                            </Link>
+                                        </h3>
+                                        <p
+                                            style={{
+                                                margin: "0 0 5px 0",
+                                                color: "#666",
+                                            }}
+                                        >
+                                            {user.email}
+                                        </p>
+                                        <p
+                                            style={{
+                                                margin: "0 0 5px 0",
+                                                fontSize: "14px",
+                                            }}
+                                        >
+                                            🏢 {user.company}
+                                        </p>
+                                        <p
+                                            style={{
+                                                margin: "0",
+                                                fontSize: "14px",
+                                                color: "#888",
+                                            }}
+                                        >
+                                            📝 게시물 {user.posts}개
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() =>
+                                            handlePrefetchUser(user.id)
+                                        }
+                                        disabled={
+                                            queryClient.getQueryData([
+                                                "user",
+                                                user.id,
+                                            ]) !== undefined
+                                        }
+                                        style={{
+                                            padding: "4px 8px",
+                                            fontSize: "12px",
+                                            backgroundColor: userCaches[
+                                                user.id - 1
+                                            ]
+                                                ? "#6c757d"
+                                                : "#007bff",
+                                            border: "1px solid #ddd",
+                                            borderRadius: "4px",
+                                            cursor: userCaches[user.id - 1]
+                                                ? "not-allowed"
+                                                : "pointer",
+                                        }}
+                                    >
+                                        {userCaches[user.id - 1]
+                                            ? "🔮 미리 로드됨"
+                                            : "🔮 미리 로드"}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

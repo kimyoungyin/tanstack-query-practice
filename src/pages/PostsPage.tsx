@@ -167,16 +167,13 @@ export default function PostsPage() {
                                 backgroundColor: "#f8f9fa",
                             }}
                         >
-                            <h3 style={{ margin: "0 0 10px 0" }}>
-                                <Link
-                                    to={`/posts/${post.id}`}
-                                    style={{
-                                        textDecoration: "none",
-                                        color: "#007bff",
-                                    }}
-                                >
-                                    {post.title}
-                                </Link>
+                            <h3
+                                style={{
+                                    margin: "0 0 10px 0",
+                                    color: "#007bff",
+                                }}
+                            >
+                                {post.title}
                             </h3>
                             <p style={{ margin: "0 0 10px 0", color: "#666" }}>
                                 {post.body}

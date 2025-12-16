@@ -126,7 +126,7 @@ export default function HomePage() {
                             backgroundColor: "#f8f9fa",
                         }}
                     >
-                        📝 Posts 페이지 - 게시물 목록 (useQuery 기본)
+                        📝 Posts 페이지 - 게시물 목록 (useQuery와 캐시)
                     </Link>
                     <Link
                         to="/users"
@@ -138,7 +138,7 @@ export default function HomePage() {
                             backgroundColor: "#f8f9fa",
                         }}
                     >
-                        👥 Users 페이지 - 사용자 목록 (캐시 시간 설정)
+                        👥 Users 페이지 - 사용자 목록 (prefetchQuery)
                     </Link>
                     <Link
                         to="/infinite-posts"
@@ -153,23 +153,6 @@ export default function HomePage() {
                         ♾️ Infinite Posts - 무한 스크롤 (useInfiniteQuery)
                     </Link>
                 </nav>
-            </div>
-
-            <div
-                style={{
-                    backgroundColor: "#fff3cd",
-                    padding: "15px",
-                    borderRadius: "4px",
-                }}
-            >
-                <h3>🎯 실습 가이드</h3>
-                <ol>
-                    <li>각 페이지를 방문해서 데이터가 로딩되는 것을 확인</li>
-                    <li>
-                        다른 페이지로 이동한 후 다시 돌아와서 캐시된 데이터 확인
-                    </li>
-                    <li>캐시 디버깅 도구로 캐시 상태 실시간 확인</li>
-                </ol>
             </div>
         </div>
     );
