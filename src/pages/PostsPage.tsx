@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DEFAULT from "@/constants";
 import StatusBox from "@/components/StatusBox";
@@ -55,15 +55,6 @@ const fetchPostsClosure = () => {
 
 const fetchPosts = fetchPostsClosure();
 
-const createPost = async (newPost: Omit<Post, "id">): Promise<Post> => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    return {
-        id: Date.now(), // 임시 ID
-        ...newPost,
-    };
-};
-
 export default function PostsPage() {
     const queryClient = useQueryClient();
 
@@ -71,40 +62,12 @@ export default function PostsPage() {
     const {
         data: posts,
         isPending,
-        error,
         isFetching,
         refetch,
     } = useQuery({
         queryKey: ["posts"],
         queryFn: fetchPosts,
     });
-
-    // 게시물 생성 뮤테이션
-    const createPostMutation = useMutation({
-        mutationFn: createPost,
-        onSuccess: (newPost) => {
-            // 캐시 업데이트 방법 1: 직접 업데이트
-            queryClient.setQueryData(
-                ["posts"],
-                (oldPosts: Post[] | undefined) => {
-                    return oldPosts ? [...oldPosts, newPost] : [newPost];
-                }
-            );
-        },
-        onError: () => {
-            console.error("❌ 게시물 생성 실패:", error);
-        },
-    });
-
-    // 새 게시물 생성 핸들러
-    const handleCreatePost = () => {
-        const newPost = {
-            title: `새 게시물 ${Date.now()}`,
-            body: "이것은 Optimistic Update 테스트용 게시물입니다.",
-            userId: 1,
-        };
-        createPostMutation.mutate(newPost);
-    };
 
     return (
         <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -153,14 +116,10 @@ export default function PostsPage() {
             >
                 <button onClick={() => refetch()} disabled={isFetching}>
                     🔄 수동 새로고침 (refetch)
-                </button>
-                <button
-                    onClick={handleCreatePost}
-                    disabled={createPostMutation.isPending}
-                >
-                    {createPostMutation.isPending
-                        ? "생성 중..."
-                        : "📝 새 게시물 추가 (createPostMutation.mutate)"}
+                    <div>
+                        - 학습 포인트: 기존 데이터가 있더라도 무시하고
+                        백그라운드에서 새로 데이터를 가져옵니다.
+                    </div>
                 </button>
                 <button
                     onClick={() =>
@@ -168,6 +127,10 @@ export default function PostsPage() {
                     }
                 >
                     🗑️ 캐시 무효화(stale 처리, queryClient.invalidateQueries)
+                    <div>
+                        - 학습 포인트: 캐시데이터는 제공되지만, 백그라운드에서
+                        refetch가 진행됩니다.
+                    </div>
                 </button>
                 <button
                     onClick={() =>
@@ -175,6 +138,10 @@ export default function PostsPage() {
                     }
                 >
                     💥 캐시 완전 삭제(queryClient.removeQueries)
+                    <div>
+                        - 학습 포인트: 바로 데이터가 사라지지 않고, 다시 쿼리
+                        데이터에 접근할 때 pending 상태가 됩니다.{" "}
+                    </div>
                 </button>
             </div>
 
@@ -185,7 +152,7 @@ export default function PostsPage() {
                     <p>
                         {isFirstFetch
                             ? "첫 번째 로딩입니다."
-                            : "gcTime 이후라 메모리에서 삭제되었습니다. 다시 로딩합니다."}
+                            : "gcTime이 지났거나, removeQueries에 의해 캐시가 메모리에서 삭제되었습니다. 다시 로딩합니다."}
                     </p>
                 </div>
             ) : (
