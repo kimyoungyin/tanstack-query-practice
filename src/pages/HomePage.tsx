@@ -2,34 +2,19 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import StatusBox from "@/components/StatusBox";
-import { useEffectEvent } from "react";
 
 export default function HomePage() {
     const queryClient = useQueryClient();
 
     const [hasPostsCache, setHasPostsCache] = useState(false);
-    const [hasUsersCache, setHasUsersCache] = useState(false);
-    const [hasInfinitePostsCache, setHasInfinitePostsCache] = useState(false);
 
-    // 캐시 상태를 확인하는 함수
-    // useEffectEvent는 props나 state의 최신값을 사용할 수 있습니다.
-    const handleCheckCache = useEffectEvent(() => {
-        setHasPostsCache(!!queryClient.getQueryData(["posts"]));
-        setHasUsersCache(!!queryClient.getQueryData(["users"]));
-        setHasInfinitePostsCache(
-            !!queryClient.getQueryData(["infinite-posts"])
-        );
-    });
-    // 1초마다 캐시 상태를 확인하는 효과 (첫 렌더링 직후 즉시 실행)
+    // 1초마다 캐시 상태를 확인하는 효과
     useEffect(() => {
-        // 첫 렌더링 직후 즉시 실행
-        handleCheckCache();
-        // 그 다음 1초마다 실행
         const interval = setInterval(() => {
-            handleCheckCache();
+            setHasPostsCache(!!queryClient.getQueryData(["posts"]));
         }, 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [queryClient]);
 
     // 모든 캐시를 무효화하는 함수
     const handleInvalidateAll = () => {
@@ -52,7 +37,6 @@ export default function HomePage() {
                     <li>백그라운드 리페칭 확인</li>
                     <li>캐시 무효화 및 업데이트</li>
                     <li>로딩 상태 및 에러 처리</li>
-                    <li>Optimistic Updates</li>
                 </ul>
             </div>
 
@@ -95,16 +79,6 @@ export default function HomePage() {
                     title="Posts 캐시"
                     description={hasPostsCache ? "있음" : "없음"}
                 />
-                <StatusBox
-                    status={hasUsersCache}
-                    title="Users 캐시"
-                    description={hasUsersCache ? "있음" : "없음"}
-                />
-                <StatusBox
-                    status={hasInfinitePostsCache}
-                    title="Infinite Posts 캐시"
-                    description={hasInfinitePostsCache ? "있음" : "없음"}
-                />
             </div>
             <hr />
             <div style={{ marginBottom: "30px" }}>
@@ -127,30 +101,6 @@ export default function HomePage() {
                         }}
                     >
                         📝 Posts 페이지 - 게시물 목록 (useQuery와 캐시)
-                    </Link>
-                    <Link
-                        to="/users"
-                        style={{
-                            padding: "12px",
-                            border: "1px solid #ddd",
-                            borderRadius: "4px",
-                            textDecoration: "none",
-                            backgroundColor: "#f8f9fa",
-                        }}
-                    >
-                        👥 Users 페이지 - 사용자 목록 (prefetchQuery)
-                    </Link>
-                    <Link
-                        to="/infinite-posts"
-                        style={{
-                            padding: "12px",
-                            border: "1px solid #ddd",
-                            borderRadius: "4px",
-                            textDecoration: "none",
-                            backgroundColor: "#f8f9fa",
-                        }}
-                    >
-                        ♾️ Infinite Posts - 무한 스크롤 (useInfiniteQuery)
                     </Link>
                 </nav>
             </div>

@@ -1,9 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import PostsPage from "@/pages/PostsPage";
-import UsersPage from "@/pages/UsersPage";
-import UserDetailPage from "@/pages/UserDetailPage";
-import InfinitePostsPage from "@/pages/InfinitePostsPage";
 import CacheControl from "@/CacheControl";
 
 function App() {
@@ -14,17 +11,13 @@ function App() {
                     style={{
                         backgroundColor: "#f8f9fa",
                         color: "#000",
+                        flex: 1,
+                        minWidth: 0,
                     }}
                 >
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/posts" element={<PostsPage />} />
-                        <Route path="/users" element={<UsersPage />} />
-                        <Route path="/users/:id" element={<UserDetailPage />} />
-                        <Route
-                            path="/infinite-posts"
-                            element={<InfinitePostsPage />}
-                        />
                         <Route
                             path="*"
                             element={

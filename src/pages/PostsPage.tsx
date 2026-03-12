@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import DEFAULT from "@/constants";
 import StatusBox from "@/components/StatusBox";
@@ -55,6 +55,15 @@ const fetchPostsClosure = () => {
 
 const fetchPosts = fetchPostsClosure();
 
+const createPost = async (newPost: Omit<Post, "id">): Promise<Post> => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    return {
+        id: Date.now(), // 임시 ID
+        ...newPost,
+    };
+};
+
 export default function PostsPage() {
     const queryClient = useQueryClient();
 
@@ -68,6 +77,29 @@ export default function PostsPage() {
         queryKey: ["posts"],
         queryFn: fetchPosts,
     });
+
+    // 게시물 생성 뮤테이션
+    const createPostMutation = useMutation({
+        mutationFn: createPost,
+        onSuccess: (newPost) => {
+            queryClient.setQueryData(
+                ["posts"],
+                (oldPosts: Post[] | undefined) => {
+                    return oldPosts ? [newPost, ...oldPosts] : [newPost];
+                },
+            );
+        },
+    });
+
+    // 새 게시물 생성 핸들러
+    const handleCreatePost = () => {
+        const newPost = {
+            title: `새 게시물 ${Date.now()}`,
+            body: "이것은 useMutation onSuccess 훅을 사용하여 Update 테스트용 게시물입니다.",
+            userId: 1,
+        };
+        createPostMutation.mutate(newPost);
+    };
 
     return (
         <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
@@ -86,8 +118,8 @@ export default function PostsPage() {
                     isPending
                         ? "🔄 게시물 로딩 중...(pending)"
                         : isFetching
-                        ? "🔄 백그라운드에서 업데이트 중...(fetching)"
-                        : "✅ 최신 데이터(fresh)"
+                          ? "🔄 백그라운드에서 업데이트 중...(fetching)"
+                          : "✅ 최신 데이터(fresh)"
                 }
             />
 
@@ -115,49 +147,80 @@ export default function PostsPage() {
                 }}
             >
                 <button onClick={() => refetch()} disabled={isFetching}>
-                    🔄 수동 새로고침 (refetch)
-                    <div>
-                        - 학습 포인트: 기존 데이터가 있더라도 무시하고
-                        백그라운드에서 새로 데이터를 가져옵니다.
-                    </div>
+                    🔄 수동 새로고침 (refetch): <br />
+                    캐시된 데이터를 무효화하고 쿼리를 다시 실행함
                 </button>
                 <button
+                    onClick={handleCreatePost}
+                    disabled={createPostMutation.isPending}
+                >
+                    {createPostMutation.isPending
+                        ? "생성 중..."
+                        : "📝 새 게시물 추가 (createPostMutation.mutate)"}
+                    <br />새 게시물을 추가하고 캐시를 업데이트함
+                </button>
+                <button
+                    disabled={!queryClient.getQueryData(["posts"])}
                     onClick={() =>
                         queryClient.invalidateQueries({ queryKey: ["posts"] })
                     }
                 >
-                    🗑️ 캐시 무효화(stale 처리, queryClient.invalidateQueries)
-                    <div>
-                        - 학습 포인트: 캐시데이터는 제공되지만, 백그라운드에서
-                        refetch가 진행됩니다.
-                    </div>
+                    🗑️ 캐시 무효화(stale 처리, queryClient.invalidateQueries):{" "}
+                    <br />
+                    캐시된 데이터를 무효화하고 쿼리를 다시 실행함(하위 쿼리도)
+                </button>
+                <button
+                    onClick={() => {
+                        queryClient.removeQueries({ queryKey: ["posts"] });
+                    }}
+                >
+                    💥 캐시 완전 삭제(queryClient.removeQueries): <br />
+                    지금 페이지에서는 데이터가 유지되지만, 내부적으로 캐시를
+                    삭제함(하위 쿼리도).
+                    <br />
+                    하지만 fetch를 활성화하진 않아 이미 마운트된 컴포넌트에서
+                    데이터를 밀어내진 않음
                 </button>
                 <button
                     onClick={() =>
-                        queryClient.removeQueries({ queryKey: ["posts"] })
+                        queryClient.resetQueries({ queryKey: ["posts"] })
                     }
                 >
-                    💥 캐시 완전 삭제(queryClient.removeQueries)
-                    <div>
-                        - 학습 포인트: 바로 데이터가 사라지지 않고, 다시 쿼리
-                        데이터에 접근할 때 pending 상태가 됩니다.{" "}
-                    </div>
+                    ♻️ 캐시 삭제 및 재요청(queryClient.resetQueries): <br />
+                    활성화된 쿼리 데이터를 삭제하고 쿼리를 바로 다시 실행함(하위
+                    쿼리도)
                 </button>
             </div>
 
             {/* 게시물 목록 */}
-            {isPending ? (
-                <div style={{ padding: "20px", textAlign: "center" }}>
-                    <h2>🔄 게시물 로딩 중...(pending)</h2>
-                    <p>
-                        {isFirstFetch
-                            ? "첫 번째 로딩입니다."
-                            : "gcTime이 지났거나, removeQueries에 의해 캐시가 메모리에서 삭제되었습니다. 다시 로딩합니다."}
-                    </p>
-                </div>
-            ) : (
-                <div style={{ display: "grid", gap: "15px" }}>
-                    {posts?.map((post) => (
+            <div style={{ display: "grid", gap: "15px" }}>
+                {isPending ? (
+                    <div
+                        style={{
+                            padding: "20px",
+                            textAlign: "center",
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            backgroundColor: "#f8f9fa",
+                        }}
+                    >
+                        <h2>🔄 게시물 로딩 중...(pending)</h2>
+                        <p>
+                            {isFirstFetch ? (
+                                "첫 번째 로딩입니다."
+                            ) : (
+                                <>
+                                    gcTime 이후/캐시 삭제 메서드 호출 후
+                                    <br />
+                                    메모리에서 삭제되었습니다.
+                                    <br />
+                                    다시 로딩합니다.
+                                </>
+                            )}
+                        </p>
+                    </div>
+                ) : (
+                    posts?.map((post) => (
                         <div
                             key={post.id}
                             style={{
@@ -167,12 +230,7 @@ export default function PostsPage() {
                                 backgroundColor: "#f8f9fa",
                             }}
                         >
-                            <h3
-                                style={{
-                                    margin: "0 0 10px 0",
-                                    color: "#007bff",
-                                }}
-                            >
+                            <h3 style={{ margin: "0 0 10px 0" }}>
                                 {post.title}
                             </h3>
                             <p style={{ margin: "0 0 10px 0", color: "#666" }}>
@@ -182,9 +240,9 @@ export default function PostsPage() {
                                 작성자 ID: {post.userId}
                             </small>
                         </div>
-                    ))}
-                </div>
-            )}
+                    ))
+                )}
+            </div>
         </div>
     );
 }

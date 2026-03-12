@@ -1,8 +1,17 @@
+배포 링크: [hhttps://tanstack-query-visualizer.netlify.app/](https://tanstack-query-visualizer.netlify.app/)
+
 # 개요
 
 이 프로젝트를 Tanstack-Query를 깊게 이해하고 활용법을 학습하기 위해 만들어진 레포지토리입니다.
 
 실제 Tanstack-Query의 동작원리를 UI로 확인할 수 있도록 하여 이후 캐싱이나 최적화가 필요한 웹앱 프로젝트에서 원활히 활용할 수 있도록 하는 것에 목적이 있습니다.
+
+또한 이 레포지토리에서는 TanStack Query의 **주요 메서드와 옵션**을 실제 코드와 화면을 통해 함께 익힐 수 있습니다.
+
+- `useQuery`, `useMutation`: 서버 상태 조회와 변경, 로딩/에러 상태 관리
+- `queryClient.invalidateQueries`, `removeQueries`, `resetQueries`, `clear`: 캐시 무효화·삭제·리셋
+- `staleTime`, `gcTime`: 캐시 수명과 가비지 컬렉션 시점 제어
+- `isPending`, `isFetching`: 초기 로딩 vs 백그라운드 리페치 상태 구분
 
 # 0. Tanstack Query 실습 전 주요 개념 정리
 
@@ -14,9 +23,9 @@
 
 여기서 말하는 서버 상태는 어떤 특징이 있을까요? 대략 정리하면 다음과 같습니다.
 
--   클라이언트에서 제어 및 소유하지 않는 위치에서 관리됨
--   비동기 API가 필요
--   소유권 공유로 인해 '사용자가 모르는 사이에' 다른 사용자가 변경(mutate)할 수 있음(즉, 신선하지 않은 상태일 수 있음)
+- 클라이언트에서 제어 및 소유하지 않는 위치에서 관리됨
+- 비동기 API가 필요
+- 소유권 공유로 인해 '사용자가 모르는 사이에' 다른 사용자가 변경(mutate)할 수 있음(즉, 신선하지 않은 상태일 수 있음)
 
 이러한 특징을 잘 핸들링하기 위해 Tanstack Query는 Context API를 기반으로 하여 적절한 캐싱 전략을 사용하여 **서버 상태**를 잘 관리할 수 있도록 합니다.
 
@@ -48,8 +57,8 @@ queryClient, useQuery 등 Tanstack-Query에서 제공하는 클래스 및 훅의
 
 이는 Tanstack Query에서 캐싱된 데이터를 관리하는데 핵심입니다.
 
--   `staleTime`: `staleTime`이 지나기 전까지 쿼리 데이터를 '신선(fresh)'하다고 간주합니다. 반대로 `staleTime`이 지나면 데이터는 '상한 것(stale)이라 판단하고, 해당 쿼리를 사용하는 컴포넌트에 다시 접근했을 때 백그라운드에서 서버에 쿼리 데이터를 다시 요청합니다.
--   `gcTime`: 쿼리 데이터가 현재 스크린에서 사용될 때는 'active' 상태이지만, 사용되지 않으면 'inactive' 상태로 변경됩니다. 이 상태에서 `gcTime`이 지나기 전까지는 쿼리 데이터가 캐싱되어 존재합니다. 하지만 `gcTime` 이상 이 데이터를 사용하지 않으면 더 이상 메모리에 저장할 필요가 없다고 판단하여 메모리에서 캐시를 제거합니다. 즉, `가비지 콜렉팅`을 수행해야하는 시간이라고 볼 수 있습니다.
+- `staleTime`: `staleTime`이 지나기 전까지 쿼리 데이터를 '신선(fresh)'하다고 간주합니다. 반대로 `staleTime`이 지나면 데이터는 '상한 것(stale)이라 판단하고, 해당 쿼리를 사용하는 컴포넌트에 다시 접근했을 때 백그라운드에서 서버에 쿼리 데이터를 다시 요청합니다.
+- `gcTime`: 쿼리 데이터가 현재 스크린에서 사용될 때는 'active' 상태이지만, 사용되지 않으면 'inactive' 상태로 변경됩니다. 이 상태에서 `gcTime`이 지나기 전까지는 쿼리 데이터가 캐싱되어 존재합니다. 하지만 `gcTime` 이상 이 데이터를 사용하지 않으면 더 이상 메모리에 저장할 필요가 없다고 판단하여 메모리에서 캐시를 제거합니다. 즉, `가비지 콜렉팅`을 수행해야하는 시간이라고 볼 수 있습니다.
 
 보통의 경우에는 staleTime보다 gcTime을 길게 설정하여, "어느 정도는 데이터를 캐싱하여 저장하여 보여주다가, 특정 시간 이상 캐시를 사용하지 않으면 가비지 콜렉팅을 통해 메모리에서 제거하는" 방식을 사용합니다.
 
@@ -60,6 +69,27 @@ queryClient, useQuery 등 Tanstack-Query에서 제공하는 클래스 및 훅의
 staleTime과 gcTime을 커스텀으로 설정할 수 있도록 하여, 데이터가 언제 상하고 가비지 콜렉팅되는지 주기적으로 추적하는데 도움이 되도록 하였습니다.
 
 일반적인 서비스와 다르게 '초 단위'로 짧게 설정하여, 실시간으로 캐싱된 데이터를 추적해보세요!
+
+---
+
+# 2. 현재 페이지 구성과 학습 포인트
+
+## HomePage (`/`)
+
+- TanStack Query 실습의 **허브 페이지**입니다.
+- 주요 기능:
+    - 전체 캐시를 무효화/완전 삭제하는 버튼 제공
+    - `["posts"]` 쿼리 캐시 유무를 `StatusBox`로 시각화
+    - `PostsPage`로 이동하는 네비게이션 제공
+
+## PostsPage (`/posts`)
+
+- **기본 개념 학습용 메인 페이지**입니다.
+- 학습 포인트:
+    - `useQuery`로 게시물 목록 로딩
+    - `isPending`, `isFetching` 상태를 `StatusBox`로 시각화
+    - `queryClient.invalidateQueries`, `removeQueries`, `resetQueries` 버튼으로 캐시 무효화/삭제/리셋 동작 비교
+    - `useMutation` + `queryClient.setQueryData`로 새 게시물 추가 시 캐시 업데이트
 
 ---
 
@@ -118,7 +148,7 @@ createRoot(document.getElementById("root")!).render(
         <QueryProvider>
             <App />
         </QueryProvider>
-    </StrictMode>
+    </StrictMode>,
 );
 ```
 
