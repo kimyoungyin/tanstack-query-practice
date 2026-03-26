@@ -102,110 +102,128 @@ export default function PostsPage() {
     };
 
     return (
-        <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
-            <div style={{ marginBottom: "20px" }}>
-                <Link to="/" style={{ textDecoration: "none" }}>
+        <div className="stack-lg">
+            <div>
+                <Link to="/">
                     ← 홈으로
                 </Link>
             </div>
-            <h1>📝 게시물 목록</h1>
-            <h2>부제: useQuery 알아보기</h2>
-            {/* 데이터 상태 표시 */}
-            <StatusBox
-                status={isFetching || isPending}
-                title="상태"
-                description={
-                    isPending
-                        ? "🔄 게시물 로딩 중...(pending)"
-                        : isFetching
-                          ? "🔄 백그라운드에서 업데이트 중...(fetching)"
-                          : "✅ 최신 데이터(fresh)"
-                }
-            />
-
-            {/* isPending */}
-            <StatusBox
-                status={isPending}
-                title="isPending"
-                description={isPending.toString()}
-            />
-
-            {/* isFetching */}
-            <StatusBox
-                status={isFetching}
-                title="isFetching"
-                description={isFetching.toString()}
-            />
-            {/* 컨트롤 버튼들 */}
-            <div
-                style={{
-                    marginBottom: "20px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                }}
-            >
-                <button onClick={() => refetch()} disabled={isFetching}>
-                    🔄 수동 새로고침 (refetch): <br />
-                    캐시된 데이터를 무효화하고 쿼리를 다시 실행함
-                </button>
-                <button
-                    onClick={handleCreatePost}
-                    disabled={createPostMutation.isPending}
-                >
-                    {createPostMutation.isPending
-                        ? "생성 중..."
-                        : "📝 새 게시물 추가 (createPostMutation.mutate)"}
-                    <br />새 게시물을 추가하고 캐시를 업데이트함
-                </button>
-                <button
-                    disabled={!queryClient.getQueryData(["posts"])}
-                    onClick={() =>
-                        queryClient.invalidateQueries({ queryKey: ["posts"] })
-                    }
-                >
-                    🗑️ 캐시 무효화(stale 처리, queryClient.invalidateQueries):{" "}
-                    <br />
-                    캐시된 데이터를 무효화하고 쿼리를 다시 실행함(하위 쿼리도)
-                </button>
-                <button
-                    onClick={() => {
-                        queryClient.removeQueries({ queryKey: ["posts"] });
-                    }}
-                >
-                    💥 캐시 완전 삭제(queryClient.removeQueries): <br />
-                    지금 페이지에서는 데이터가 유지되지만, 내부적으로 캐시를
-                    삭제함(하위 쿼리도).
-                    <br />
-                    하지만 fetch를 활성화하진 않아 이미 마운트된 컴포넌트에서
-                    데이터를 밀어내진 않음
-                </button>
-                <button
-                    onClick={() =>
-                        queryClient.resetQueries({ queryKey: ["posts"] })
-                    }
-                >
-                    ♻️ 캐시 삭제 및 재요청(queryClient.resetQueries): <br />
-                    활성화된 쿼리 데이터를 삭제하고 쿼리를 바로 다시 실행함(하위
-                    쿼리도)
-                </button>
+            <div className="stack-sm">
+                <h1>게시물 목록</h1>
+                <p className="muted">
+                    `useQuery`의 pending/fetching 흐름과 캐시 제어 메서드를 함께
+                    확인합니다.
+                </p>
             </div>
 
-            {/* 게시물 목록 */}
-            <div style={{ display: "grid", gap: "15px" }}>
-                {isPending ? (
-                    <div
-                        style={{
-                            padding: "20px",
-                            textAlign: "center",
-                            border: "1px solid #ddd",
-                            borderRadius: "8px",
-                            backgroundColor: "#f8f9fa",
+            <section className="card stack-sm">
+                <h2 className="section-title">쿼리 상태</h2>
+                <StatusBox
+                    status={isFetching || isPending}
+                    title="전체 상태"
+                    description={
+                        isPending
+                            ? "게시물 로딩 중 (pending)"
+                            : isFetching
+                              ? "백그라운드 업데이트 중 (fetching)"
+                              : "최신 데이터 (fresh)"
+                    }
+                />
+
+                <StatusBox
+                    status={isPending}
+                    title="isPending"
+                    description={isPending ? "true" : "false"}
+                />
+
+                <StatusBox
+                    status={isFetching}
+                    title="isFetching"
+                    description={isFetching ? "true" : "false"}
+                />
+            </section>
+
+            <section className="card stack-md">
+                <h2 className="section-title">캐시 제어</h2>
+                <div className="button-row">
+                    <button className="button-secondary" onClick={() => refetch()} disabled={isFetching}>
+                        수동 새로고침 (refetch)
+                    </button>
+                    <p className="muted">
+                        캐시를 기준으로 쿼리를 다시 실행해 최신 데이터를 가져옵니다.
+                    </p>
+                </div>
+
+                <div className="button-row">
+                    <button
+                        className="button-primary"
+                        onClick={handleCreatePost}
+                        disabled={createPostMutation.isPending}
+                    >
+                        {createPostMutation.isPending
+                            ? "새 게시물 생성 중..."
+                            : "새 게시물 추가 (mutation)"}
+                    </button>
+                    <p className="muted">
+                        생성 성공 시 `queryClient.setQueryData()`로 목록 캐시를 바로
+                        갱신합니다.
+                    </p>
+                </div>
+
+                <div className="button-row">
+                    <button
+                        className="button-secondary"
+                        disabled={!queryClient.getQueryData(["posts"])}
+                        onClick={() =>
+                            queryClient.invalidateQueries({ queryKey: ["posts"] })
+                        }
+                    >
+                        캐시 무효화 (invalidateQueries)
+                    </button>
+                    <p className="muted">
+                        데이터를 stale 처리하고 활성 쿼리는 재요청합니다.
+                    </p>
+                </div>
+
+                <div className="button-row">
+                    <button
+                        className="button-danger-ghost"
+                        onClick={() => {
+                            queryClient.removeQueries({ queryKey: ["posts"] });
                         }}
                     >
-                        <h2>🔄 게시물 로딩 중...(pending)</h2>
-                        <p>
+                        캐시 제거 (removeQueries)
+                    </button>
+                    <p className="muted">
+                        캐시 엔트리를 제거하지만, 이미 마운트된 화면의 데이터는 즉시
+                        사라지지 않을 수 있습니다.
+                    </p>
+                </div>
+
+                <div className="button-row">
+                    <button
+                        className="button-danger"
+                        onClick={() =>
+                            queryClient.resetQueries({ queryKey: ["posts"] })
+                        }
+                    >
+                        캐시 초기화 및 재요청 (resetQueries)
+                    </button>
+                    <p className="muted">
+                        활성 쿼리 데이터를 리셋한 뒤 즉시 다시 요청합니다.
+                    </p>
+                </div>
+            </section>
+
+            <section className="stack-md">
+                <h2>게시물 목록</h2>
+                <button className="button-secondary" onClick={() => refetch()} disabled={isFetching}>
+                    {isFetching ? "업데이트 중..." : "목록 다시 불러오기"}
+                </button>
+                {isPending ? (
+                    <div className="card stack-sm post-card">
+                        <h3>게시물 로딩 중 (pending)</h3>
+                        <p className="muted">
                             {isFirstFetch ? (
                                 "첫 번째 로딩입니다."
                             ) : (
@@ -221,28 +239,16 @@ export default function PostsPage() {
                     </div>
                 ) : (
                     posts?.map((post) => (
-                        <div
-                            key={post.id}
-                            style={{
-                                border: "1px solid #ddd",
-                                borderRadius: "8px",
-                                padding: "15px",
-                                backgroundColor: "#f8f9fa",
-                            }}
-                        >
-                            <h3 style={{ margin: "0 0 10px 0" }}>
-                                {post.title}
-                            </h3>
-                            <p style={{ margin: "0 0 10px 0", color: "#666" }}>
-                                {post.body}
-                            </p>
-                            <small style={{ color: "#888" }}>
+                        <article key={post.id} className="card stack-sm post-card">
+                            <h3>{post.title}</h3>
+                            <p className="muted">{post.body}</p>
+                            <small className="muted">
                                 작성자 ID: {post.userId}
                             </small>
-                        </div>
+                        </article>
                     ))
                 )}
-            </div>
+            </section>
         </div>
     );
 }

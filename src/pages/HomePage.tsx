@@ -27,83 +27,69 @@ export default function HomePage() {
     };
 
     return (
-        <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto" }}>
-            <h1>TanStack Query 실습 홈</h1>
+        <div className="stack-lg">
+            <div className="stack-sm">
+                <h1>TanStack Query 실습 홈</h1>
+                <p className="muted">
+                    캐시 수명과 리패치 흐름을 직접 조작하며 기본 개념을 익히는
+                    학습용 페이지입니다.
+                </p>
+            </div>
 
-            <div style={{ marginBottom: "30px" }}>
-                <h2>📚 학습 목표</h2>
+            <section className="section card">
+                <h2 className="section-title">학습 목표</h2>
                 <ul>
                     <li>쿼리 캐싱 동작 이해</li>
                     <li>백그라운드 리페칭 확인</li>
                     <li>캐시 무효화 및 업데이트</li>
                     <li>로딩 상태 및 에러 처리</li>
                 </ul>
-            </div>
+            </section>
 
-            <div style={{ marginBottom: "30px" }}>
-                <h2>🧪 캐시 디버깅 도구</h2>
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                        marginBottom: "20px",
-                    }}
-                >
+            <section className="section card stack-md">
+                <h2 className="section-title">캐시 디버깅 도구</h2>
+                <div className="button-row">
                     <button
+                        className="button-primary"
                         onClick={handleInvalidateAll}
-                        style={{ padding: "8px 16px" }}
                     >
-                        모든 캐시 무효화(queryClient.invalidateQueries)
-                        <div>
-                            - 학습 포인트: 캐시데이터는 제공되지만, stale하다고
-                            간주됩니다. 다시 쿼리에 접근하면 refetch가
-                            진행됩니다.
-                        </div>
+                        모든 캐시 무효화
                     </button>
+                    <p className="muted">
+                        `queryClient.invalidateQueries()`:
+                        <br />
+                        캐시 데이터는 유지되지만 stale 상태로 전환되어 이후 접근 시
+                        다시 요청됩니다.
+                    </p>
                     <button
+                        className="button-danger"
                         onClick={handleClearCache}
-                        style={{ padding: "8px 16px" }}
                     >
-                        캐시 완전 삭제(queryClient.clear)
-                        <div>
-                            - 학습 포인트: 캐시데이터가 완전히 삭제됩니다. 다시
-                            쿼리에 접근하면 pending 상태가 됩니다.
-                        </div>
+                        캐시 완전 삭제
                     </button>
+                    <p className="muted">
+                        `queryClient.clear()`:
+                        <br />
+                        캐시 데이터가 완전히 삭제되어 다음 접근 시 pending
+                        상태부터 시작합니다.
+                    </p>
                 </div>
-                <hr />
-                <h3>캐시 상태: 1초마다 갱신됩니다.</h3>
+                <h3>캐시 상태 (1초 주기 갱신)</h3>
                 <StatusBox
                     status={hasPostsCache}
                     title="Posts 캐시"
                     description={hasPostsCache ? "있음" : "없음"}
                 />
-            </div>
-            <hr />
-            <div style={{ marginBottom: "30px" }}>
-                <h2>🔗 페이지 이동</h2>
-                <nav
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                    }}
-                >
-                    <Link
-                        to="/posts"
-                        style={{
-                            padding: "12px",
-                            border: "1px solid #ddd",
-                            borderRadius: "4px",
-                            textDecoration: "none",
-                            backgroundColor: "#f8f9fa",
-                        }}
-                    >
-                        📝 Posts 페이지 - 게시물 목록 (useQuery와 캐시)
+            </section>
+
+            <section className="section card stack-sm">
+                <h2 className="section-title">페이지 이동</h2>
+                <nav className="stack-sm">
+                    <Link to="/posts" className="card">
+                        Posts 페이지 - 게시물 목록과 캐시 상태 확인
                     </Link>
                 </nav>
-            </div>
+            </section>
         </div>
     );
 }

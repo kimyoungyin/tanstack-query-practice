@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@fontsource/ibm-plex-sans-kr": "^5.2.8",
     "@tanstack/react-query": "^5.90.12",
     "@types/react-router-dom": "^5.3.3",
     "react": "^19.2.0",

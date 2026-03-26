@@ -1,6 +1,11 @@
 import DEFAULT from "@/constants";
 
 export default function CacheControl() {
+    const staleTimeValue = Number(
+        localStorage.getItem("staleTime") || DEFAULT.STALE_TIME,
+    );
+    const gcTimeValue = Number(localStorage.getItem("gcTime") || DEFAULT.GC_TIME);
+
     const resetOptions = () => {
         localStorage.removeItem("staleTime");
         localStorage.removeItem("gcTime");
@@ -8,32 +13,25 @@ export default function CacheControl() {
     };
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {/* 학습 노트 */}
-            <div
-                style={{
-                    marginTop: "30px",
-                    padding: "15px",
-                    borderRadius: "4px",
-                }}
-            >
-                <h4>
-                    🎓 학습 포인트: staleTime, gcTime, isPending, isFetching
-                </h4>
+        <aside className="page stack-md">
+            <div className="stack-sm">
+                <h2>캐시 옵션 제어</h2>
+                <p className="muted">
+                    값을 변경한 뒤 새로고침하면 Query 옵션에 반영됩니다.
+                </p>
+            </div>
+
+            <div className="card stack-sm">
+                <h3>학습 포인트</h3>
                 <ul>
                     <li>
                         <strong>staleTime:</strong> 데이터가 "신선한" 상태로
-                        유지되는 시간 (현재{" "}
-                        {localStorage.getItem("staleTime") ||
-                            DEFAULT.STALE_TIME}
-                        ms({Number(localStorage.getItem("staleTime")) / 1000}
-                        초))
+                        유지되는 시간 (현재 {staleTimeValue}ms /{" "}
+                        {staleTimeValue / 1000}초)
                     </li>
                     <li>
                         <strong>gcTime:</strong> 캐시가 메모리에 보관되는 시간
-                        (현재{" "}
-                        {localStorage.getItem("gcTime") || DEFAULT.GC_TIME}ms(
-                        {Number(localStorage.getItem("gcTime")) / 1000}초))
+                        (현재 {gcTimeValue}ms / {gcTimeValue / 1000}초)
                     </li>
                     <li>
                         <strong>isPending:</strong> 첫 페칭 혹은 gcTime 이후라
@@ -54,26 +52,39 @@ export default function CacheControl() {
                     </li>
                 </ul>
             </div>
-            <label htmlFor="staleTime">Stale Time</label>
-            <input
-                id="staleTime"
-                defaultValue={
-                    localStorage.getItem("staleTime") || DEFAULT.STALE_TIME
-                }
-                onChange={(e) =>
-                    localStorage.setItem("staleTime", e.target.value)
-                }
-            />
-            <label htmlFor="gcTime">GC Time</label>
-            <input
-                id="gcTime"
-                defaultValue={localStorage.getItem("gcTime") || DEFAULT.GC_TIME}
-                onChange={(e) => localStorage.setItem("gcTime", e.target.value)}
-            />
-            <button onClick={() => window.location.reload()}>
-                새로고침하여 옵션 적용
-            </button>
-            <button onClick={resetOptions}>옵션 초기화 및 새로고침</button>
-        </div>
+
+            <div className="stack-sm">
+                <label htmlFor="staleTime">Stale Time (ms)</label>
+                <input
+                    id="staleTime"
+                    defaultValue={
+                        localStorage.getItem("staleTime") || DEFAULT.STALE_TIME
+                    }
+                    onChange={(e) =>
+                        localStorage.setItem("staleTime", e.target.value)
+                    }
+                />
+            </div>
+
+            <div className="stack-sm">
+                <label htmlFor="gcTime">GC Time (ms)</label>
+                <input
+                    id="gcTime"
+                    defaultValue={localStorage.getItem("gcTime") || DEFAULT.GC_TIME}
+                    onChange={(e) =>
+                        localStorage.setItem("gcTime", e.target.value)
+                    }
+                />
+            </div>
+
+            <div className="button-row">
+                <button className="button-primary" onClick={() => window.location.reload()}>
+                    새로고침하여 옵션 적용
+                </button>
+                <button className="button-danger" onClick={resetOptions}>
+                    옵션 초기화 및 새로고침
+                </button>
+            </div>
+        </aside>
     );
 }

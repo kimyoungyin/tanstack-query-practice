@@ -6,29 +6,19 @@ import CacheControl from "@/CacheControl";
 function App() {
     return (
         <Router>
-            <div style={{ display: "flex", gap: "20px", minHeight: "100vh" }}>
-                <div
-                    style={{
-                        backgroundColor: "#f8f9fa",
-                        color: "#000",
-                        flex: 1,
-                        minWidth: 0,
-                    }}
-                >
+            <div className="app-shell">
+                <div className="page">
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/posts" element={<PostsPage />} />
                         <Route
                             path="*"
                             element={
-                                <div
-                                    style={{
-                                        padding: "20px",
-                                        textAlign: "center",
-                                    }}
-                                >
-                                    <h2>❓ 페이지를 찾을 수 없습니다</h2>
-                                    <p>요청하신 페이지가 존재하지 않습니다.</p>
+                                <div className="stack-md">
+                                    <h2>페이지를 찾을 수 없습니다</h2>
+                                    <p className="muted">
+                                        요청하신 페이지가 존재하지 않습니다.
+                                    </p>
                                     <a href="/">홈으로 돌아가기</a>
                                 </div>
                             }

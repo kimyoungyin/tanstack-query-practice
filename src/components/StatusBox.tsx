@@ -7,19 +7,14 @@ export default function StatusBox({
     title: string;
     description: string;
 }) {
+    const statusClassName = status ? "status-success" : "status-warning";
+
     return (
-        <div
-            style={{
-                display: "flex",
-                alignItems: "center",
-                backgroundColor: status ? "#d4edda" : "#fff3cd",
-                padding: "8px 16px",
-                borderRadius: "4px",
-                marginBottom: "20px",
-            }}
-        >
-            <strong>{title}: </strong>
-            <p>{description}</p>
+        <div className={`card ${statusClassName}`}>
+            <p>
+                <strong>{title}: </strong>
+                {description}
+            </p>
         </div>
     );
 }
