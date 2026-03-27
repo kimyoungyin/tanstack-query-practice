@@ -1,6 +1,6 @@
 const DEFAULT = {
-    STALE_TIME: 60 * 1000,
-    GC_TIME: 120 * 1000,
+    STALE_TIME: 6 * 1000,
+    GC_TIME: 12 * 1000,
     API_DELAY: 3000,
 };
 
