@@ -1,114 +1,37 @@
-import DEFAULT from "@/constants";
 import {
     CacheTimingSection,
     PostsActivitySection,
     PostsFreshnessSection,
     PostsQueryStatusSection,
     SectionLearningPoint,
+    useCacheTimingControls,
+    usePostsCacheState,
 } from "@/components/cache-control";
-import type {
-    PostsCacheActivity,
-    PostsCacheFreshness,
-    PostsQueryStatus,
-} from "@/components/cache-control";
-import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function CacheControl() {
-    const [postsCacheActivity, setPostsCacheActivity] = useState<PostsCacheActivity>(
-        "missing",
-    );
-    const [postsQueryStatus, setPostsQueryStatus] = useState<PostsQueryStatus>({
-        status: "missing",
-        fetchStatus: "missing",
-        isPending: false,
-        isFetching: false,
-    });
-    const [postsCacheFreshness, setPostsCacheFreshness] =
-        useState<PostsCacheFreshness>("missing");
-
-    const queryClient = useQueryClient();
-
-    const staleTimeValue = Number(
-        localStorage.getItem("staleTime") || DEFAULT.STALE_TIME,
-    );
-    const gcTimeValue = Number(localStorage.getItem("gcTime") || DEFAULT.GC_TIME);
-    const resetOptions = () => {
-        localStorage.removeItem("staleTime");
-        localStorage.removeItem("gcTime");
-        window.location.reload();
-    };
-
-    useEffect(() => {
-        const resolveFreshness = (
-            hasData: boolean,
-            dataUpdatedAt: number,
-            isInvalidated: boolean,
-        ): PostsCacheFreshness => {
-            if (!hasData) return "missing";
-            if (isInvalidated) return "stale";
-            const isStaleByTime = Date.now() - dataUpdatedAt > staleTimeValue;
-            return isStaleByTime ? "stale" : "fresh";
-        };
-
-        const updatePostsCacheActivity = () => {
-            const query = queryClient
-                .getQueryCache()
-                .find({ queryKey: ["posts"], exact: true });
-
-            if (!query) {
-                setPostsQueryStatus({
-                    status: "missing",
-                    fetchStatus: "missing",
-                    isPending: false,
-                    isFetching: false,
-                });
-                setPostsCacheFreshness("missing");
-                setPostsCacheActivity("missing");
-                return;
-            } else {
-                const state = query.state;
-                const isPendingNow = state.status === "pending";
-                const isFetchingNow = state.fetchStatus === "fetching";
-                const hasData = state.data != null;
-                const freshnessNow = resolveFreshness(
-                    hasData,
-                    state.dataUpdatedAt,
-                    state.isInvalidated,
-                );
-
-                setPostsQueryStatus({
-                    status: state.status,
-                    fetchStatus: state.fetchStatus,
-                    isPending: isPendingNow,
-                    isFetching: isFetchingNow,
-                });
-                setPostsCacheFreshness(freshnessNow);
-                setPostsCacheActivity(query.isActive() ? "active" : "inactive");
-            }
-        };
-
-        updatePostsCacheActivity();
-        const intervalId = setInterval(updatePostsCacheActivity, 500);
-        const unsubscribe = queryClient
-            .getQueryCache()
-            .subscribe(updatePostsCacheActivity);
-        return () => {
-            clearInterval(intervalId);
-            unsubscribe();
-        };
-    }, [queryClient, staleTimeValue]);
+    const {
+        staleTimeInputValue,
+        gcTimeInputValue,
+        staleTimeValue,
+        gcTimeValue,
+        setStaleTime,
+        setGcTime,
+        reload,
+        resetOptions,
+    } = useCacheTimingControls();
+    const { postsCacheActivity, postsQueryStatus, postsCacheFreshness } =
+        usePostsCacheState(staleTimeValue);
 
     return (
         <aside className="control-rail stack-md" aria-label="캐시 옵션 제어 패널">
                 <CacheTimingSection
                     staleTimeInputValue={
-                        localStorage.getItem("staleTime") || String(DEFAULT.STALE_TIME)
+                        staleTimeInputValue
                     }
-                    gcTimeInputValue={localStorage.getItem("gcTime") || String(DEFAULT.GC_TIME)}
-                    onStaleTimeChange={(value) => localStorage.setItem("staleTime", value)}
-                    onGcTimeChange={(value) => localStorage.setItem("gcTime", value)}
-                    onReload={() => window.location.reload()}
+                    gcTimeInputValue={gcTimeInputValue}
+                    onStaleTimeChange={setStaleTime}
+                    onGcTimeChange={setGcTime}
+                    onReload={reload}
                     onResetOptions={resetOptions}
                     learningPoint={
                         <SectionLearningPoint
