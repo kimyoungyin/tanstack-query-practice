@@ -93,6 +93,85 @@ staleTime과 gcTime을 커스텀으로 설정할 수 있도록 하여, 데이터
 
 ---
 
+# 3. 상태 전이 시나리오 (회귀 체크리스트)
+
+아래 시나리오는 `CacheControl` 패널의 상태 표시가 TanStack Query v5 동작과 일치하는지 검증하기 위한 기준입니다.
+
+## 전제 조건
+
+- `["posts"]` 쿼리는 `PostsPage`에서만 구독됩니다.
+- `HomePage`는 `posts` 쿼리를 구독하지 않습니다.
+- 기본 예시 값: `staleTime = 6000ms`, `gcTime = 12000ms`
+- Freshness 표기 기준:
+    - `fresh`: 데이터가 있고 stale이 아님
+    - `stale`: 데이터가 있지만 staleTime 경과 또는 invalidated
+    - `없음`: 데이터 자체가 없음(미생성/삭제/GC 완료)
+
+## 시나리오 A: 홈에서 prefetch 후 시간 경과
+
+1. 홈(`/`) 진입 직후
+    - 기대값:
+        - activity: `DELETED/MISSING`
+        - freshness: `없음`
+        - status/fetchStatus: `없음`
+2. `prefetchQuery` 클릭
+    - 기대값:
+        - activity: `INACTIVE`
+        - status: `success`
+        - fetchStatus: 완료 후 `idle`
+        - freshness: `fresh`
+3. `staleTime` 경과 대기(약 6초)
+    - 기대값:
+        - activity: `INACTIVE`
+        - freshness: `stale`
+4. `gcTime`까지 추가 대기(총 약 12초)
+    - 기대값:
+        - activity: `DELETED/MISSING`
+        - freshness: `없음`
+        - status/fetchStatus: `없음`
+
+## 시나리오 B: posts에서 stale 만든 뒤 홈으로 이동
+
+1. `clear` 클릭으로 시작 상태 초기화
+2. `/posts` 이동 후 초기 요청 완료 대기
+    - 기대값:
+        - activity: `ACTIVE`
+        - freshness: `fresh`
+3. `/posts`에서 `invalidateQueries` 클릭
+    - 기대값:
+        - active 구독 중이므로 백그라운드 refetch 가능
+        - 최종 freshness는 `stale` 또는 빠르게 재검증 후 `fresh`로 복귀 가능
+4. 즉시 홈(`/`) 이동
+    - 기대값:
+        - activity: `INACTIVE`
+        - stale 상태였던 경우 홈에서도 `stale` 유지
+        - 홈 이동 시 `stale -> fresh` 역전이 발생하지 않아야 함
+
+## 시나리오 C: 주요 메서드별 기대 변화
+
+- `refetchQueries`
+    - 매칭 쿼리를 즉시 재요청합니다.
+    - active/inactive 여부와 옵션에 따라 실제 네트워크 요청 대상이 달라질 수 있습니다.
+- `invalidateQueries`
+    - 쿼리를 stale로 마킹합니다.
+    - 기본값에서는 active 쿼리만 즉시 refetch합니다.
+- `prefetchQuery`
+    - 미리 캐시를 채우며, 홈에서는 보통 `INACTIVE + fresh/stale` 흐름을 확인할 수 있습니다.
+- `resetQueries`
+    - 쿼리 상태를 초기화하고 active 쿼리는 다시 요청할 수 있습니다.
+- `removeQueries`
+    - 매칭 쿼리 엔트리를 캐시에서 제거하여 `없음` 상태로 전환됩니다.
+- `clear`
+    - Query/Mutation 캐시 전체를 비우며 `posts`도 `없음` 상태가 됩니다.
+
+## 체크 포인트 요약
+
+- `fresh -> stale -> 없음` 흐름은 가능해야 합니다.
+- `삭제(없음)`은 stale 때문이 아니라 `inactive + gcTime` 조건으로 발생합니다.
+- `HomePage`는 미구독 페이지이므로 activity는 `INACTIVE` 또는 `DELETED/MISSING`이 정상입니다.
+
+---
+
 # 1. 기본 셋업
 
 ## TanStack Query v5 설치 및 설정
