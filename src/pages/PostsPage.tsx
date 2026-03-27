@@ -4,12 +4,7 @@ import { fetchPosts, isFirstFetch } from "@/fetchPosts";
 
 export default function PostsPage() {
     // 게시물 목록 조회 쿼리
-    const {
-        data: posts,
-        isPending,
-        isFetching,
-        refetch,
-    } = useQuery({
+    const { data: posts, isPending } = useQuery({
         queryKey: ["posts"],
         queryFn: fetchPosts,
     });
@@ -17,9 +12,7 @@ export default function PostsPage() {
     return (
         <div className="stack-lg">
             <div>
-                <Link to="/">
-                    ← 홈으로
-                </Link>
+                <Link to="/">← 홈으로</Link>
             </div>
             <div className="stack-sm">
                 <h1>게시물 목록</h1>
@@ -29,19 +22,7 @@ export default function PostsPage() {
                 </p>
             </div>
 
-            <section className="card stack-md">
-                <h2 className="section-title">게시물 목록</h2>
-                <p className="muted">
-                    캐시 제어 버튼은 좌측 패널로 이동했습니다. 우측 패널에서 상태를
-                    확인하며 동작을 비교해보세요.
-                </p>
-            </section>
-
             <section className="stack-md">
-                <h2>게시물 목록</h2>
-                <button className="button-secondary" onClick={() => refetch()} disabled={isFetching}>
-                    {isFetching ? "업데이트 중..." : "목록 다시 불러오기"}
-                </button>
                 {isPending ? (
                     <div className="card stack-sm post-card">
                         <h3>게시물 로딩 중 (pending)</h3>
@@ -61,7 +42,10 @@ export default function PostsPage() {
                     </div>
                 ) : (
                     posts?.map((post) => (
-                        <article key={post.id} className="card stack-sm post-card">
+                        <article
+                            key={post.id}
+                            className="card stack-sm post-card"
+                        >
                             <h3>{post.title}</h3>
                             <p className="muted">{post.body}</p>
                             <small className="muted">
