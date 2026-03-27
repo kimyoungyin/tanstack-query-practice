@@ -2,11 +2,13 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import PostsPage from "@/pages/PostsPage";
 import CacheControl from "@/CacheControl";
+import LeftControl from "@/LeftControl";
 
 function App() {
     return (
         <Router>
             <div className="app-shell">
+                <LeftControl />
                 <div className="page">
                     <Routes>
                         <Route path="/" element={<HomePage />} />
