@@ -1,85 +1,31 @@
 import DEFAULT from "@/constants";
-import type { ReactNode } from "react";
+import {
+    CacheTimingSection,
+    PostsActivitySection,
+    PostsFreshnessSection,
+    PostsQueryStatusSection,
+    SectionLearningPoint,
+} from "@/components/cache-control";
+import type {
+    PostsCacheActivity,
+    PostsCacheFreshness,
+    PostsQueryStatus,
+} from "@/components/cache-control";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { createPortal } from "react-dom";
-
-interface SectionLearningPointProps {
-    title: string;
-    points: ReactNode[];
-    footnote?: ReactNode;
-}
-
-function SectionLearningPoint({
-    title,
-    points,
-    footnote,
-}: SectionLearningPointProps) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <>
-            <button
-                className="section-learning-trigger"
-                onClick={() => setIsOpen(true)}
-                type="button"
-                aria-label={title}
-                title={title}
-            >
-                i
-            </button>
-            {isOpen ? (
-                createPortal(
-                    <div
-                        className="section-learning-modal-overlay"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label={title}
-                        onClick={() => setIsOpen(false)}
-                    >
-                        <div
-                            className="card stack-sm section-learning-modal"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="section-learning-modal-header">
-                                <h4>{title}</h4>
-                                <button
-                                    type="button"
-                                    className="section-learning-close"
-                                    onClick={() => setIsOpen(false)}
-                                    aria-label="학습 포인트 닫기"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <ul>
-                                {points.map((point, index) => (
-                                    <li key={`${title}-${index}`}>{point}</li>
-                                ))}
-                            </ul>
-                            {footnote ? <p className="muted">{footnote}</p> : null}
-                        </div>
-                    </div>,
-                    document.body,
-                )
-            ) : null}
-        </>
-    );
-}
 
 export default function CacheControl() {
-    const [postsCacheActivity, setPostsCacheActivity] = useState<
-        "active" | "inactive" | "missing"
-    >("missing");
-    const [postsQueryStatus, setPostsQueryStatus] = useState({
-        status: "missing" as "pending" | "success" | "error" | "missing",
-        fetchStatus: "missing" as "fetching" | "paused" | "idle" | "missing",
+    const [postsCacheActivity, setPostsCacheActivity] = useState<PostsCacheActivity>(
+        "missing",
+    );
+    const [postsQueryStatus, setPostsQueryStatus] = useState<PostsQueryStatus>({
+        status: "missing",
+        fetchStatus: "missing",
         isPending: false,
         isFetching: false,
     });
-    const [postsCacheFreshness, setPostsCacheFreshness] = useState<
-        "fresh" | "stale" | "missing"
-    >("missing");
+    const [postsCacheFreshness, setPostsCacheFreshness] =
+        useState<PostsCacheFreshness>("missing");
 
     const queryClient = useQueryClient();
 
@@ -98,7 +44,7 @@ export default function CacheControl() {
             hasData: boolean,
             dataUpdatedAt: number,
             isInvalidated: boolean,
-        ): "fresh" | "stale" | "missing" => {
+        ): PostsCacheFreshness => {
             if (!hasData) return "missing";
             if (isInvalidated) return "stale";
             const isStaleByTime = Date.now() - dataUpdatedAt > staleTimeValue;
@@ -155,9 +101,16 @@ export default function CacheControl() {
 
     return (
         <aside className="control-rail stack-md" aria-label="캐시 옵션 제어 패널">
-                <section className="page stack-md">
-                    <div className="stack-sm section-heading-row">
-                        <h2>staleTime / gcTime 설정</h2>
+                <CacheTimingSection
+                    staleTimeInputValue={
+                        localStorage.getItem("staleTime") || String(DEFAULT.STALE_TIME)
+                    }
+                    gcTimeInputValue={localStorage.getItem("gcTime") || String(DEFAULT.GC_TIME)}
+                    onStaleTimeChange={(value) => localStorage.setItem("staleTime", value)}
+                    onGcTimeChange={(value) => localStorage.setItem("gcTime", value)}
+                    onReload={() => window.location.reload()}
+                    onResetOptions={resetOptions}
+                    learningPoint={
                         <SectionLearningPoint
                             title="학습 포인트"
                             points={[
@@ -183,66 +136,12 @@ export default function CacheControl() {
                                 </>,
                             ]}
                         />
-                    </div>
-                    <p className="muted">
-                        staleTime/gcTime을 조절한 뒤 새로고침하면 즉시 반영됩니다.
-                    </p>
+                    }
+                />
 
-                    <div className="stack-sm">
-                        <label htmlFor="staleTime">Stale Time (ms)</label>
-                        <input
-                            id="staleTime"
-                            defaultValue={
-                                localStorage.getItem("staleTime") || DEFAULT.STALE_TIME
-                            }
-                            onChange={(e) =>
-                                localStorage.setItem("staleTime", e.target.value)
-                            }
-                        />
-                    </div>
-
-                    <div className="stack-sm">
-                        <label htmlFor="gcTime">GC Time (ms)</label>
-                        <input
-                            id="gcTime"
-                            defaultValue={localStorage.getItem("gcTime") || DEFAULT.GC_TIME}
-                            onChange={(e) => localStorage.setItem("gcTime", e.target.value)}
-                        />
-                    </div>
-
-                    <div className="button-row">
-                        <button
-                            type="button"
-                            className="button-control button-control--primary"
-                            onClick={() => window.location.reload()}
-                            aria-label="저장한 staleTime·gcTime으로 페이지 새로고침 (localStorage 반영)"
-                        >
-                            <span className="button-control__label">
-                                저장한 설정으로 새로고침
-                            </span>
-                            <span className="button-control__method">
-                                staleTime / gcTime
-                            </span>
-                        </button>
-                        <button
-                            type="button"
-                            className="button-control button-control--reset"
-                            onClick={resetOptions}
-                            aria-label="localStorage의 staleTime·gcTime을 지우고 새로고침"
-                        >
-                            <span className="button-control__label">
-                                저장된 옵션 지우고 새로고침
-                            </span>
-                            <span className="button-control__method">
-                                localStorage 초기화
-                            </span>
-                        </button>
-                    </div>
-                </section>
-
-                <section className="page stack-sm">
-                    <div className="section-heading-row">
-                        <h3>주요 Posts 쿼리 상태 값</h3>
+                <PostsQueryStatusSection
+                    postsQueryStatus={postsQueryStatus}
+                    learningPoint={
                         <SectionLearningPoint
                             title="학습 포인트"
                             points={[
@@ -252,145 +151,12 @@ export default function CacheControl() {
                                 "캐시에 해당 쿼리 엔트리 자체가 없으면 이 패널에서는 status/fetchStatus를 '없음'으로 표시합니다.",
                             ]}
                         />
-                    </div>
-                    <div className="query-status-grid" aria-label="쿼리 상태 4가지 값">
-                        <div className="query-status-row">
-                            <strong>isPending</strong>
-                            <div className="status-candidates">
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.isPending
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    true
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        !postsQueryStatus.isPending
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    false
-                                </span>
-                            </div>
-                        </div>
+                    }
+                />
 
-                        <div className="query-status-row">
-                            <strong>isFetching</strong>
-                            <div className="status-candidates">
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.isFetching
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    true
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        !postsQueryStatus.isFetching
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    false
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="query-status-row">
-                            <strong>status</strong>
-                            <div className="status-candidates">
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.status === "pending"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    pending
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.status === "success"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    success
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.status === "error"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    error
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.status === "missing"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    없음
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="query-status-row">
-                            <strong>fetchStatus</strong>
-                            <div className="status-candidates">
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.fetchStatus === "fetching"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    fetching
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.fetchStatus === "paused"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    paused
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.fetchStatus === "idle"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    idle
-                                </span>
-                                <span
-                                    className={`status-option ${
-                                        postsQueryStatus.fetchStatus === "missing"
-                                            ? "status-option-active"
-                                            : ""
-                                    }`}
-                                >
-                                    없음
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="page stack-sm">
-                    <div className="section-heading-row">
-                        <h3>Posts 캐시 데이터 Freshness</h3>
+                <PostsFreshnessSection
+                    postsCacheFreshness={postsCacheFreshness}
+                    learningPoint={
                         <SectionLearningPoint
                             title="학습 포인트"
                             points={[
@@ -400,36 +166,12 @@ export default function CacheControl() {
                                 "없음: posts 데이터 자체가 없을 때(쿼리 미생성/삭제/초기 로딩 중 데이터 없음)입니다.",
                             ]}
                         />
-                    </div>
-                    <div className="query-activity-row">
-                        <span
-                            className={`status-pill ${
-                                postsCacheFreshness === "fresh"
-                                    ? "status-success"
-                                    : postsCacheFreshness === "stale"
-                                      ? "status-warning"
-                                      : "status-neutral"
-                            }`}
-                        >
-                            {postsCacheFreshness === "fresh"
-                                ? "Fresh"
-                                : postsCacheFreshness === "stale"
-                                  ? "Stale"
-                                  : "없음"}
-                        </span>
-                        <span className="muted">
-                            {postsCacheFreshness === "fresh"
-                                ? "posts 데이터가 있고 stale 상태가 아니므로 fresh입니다."
-                                : postsCacheFreshness === "stale"
-                                  ? "posts 데이터는 있지만 stale입니다. (staleTime 경과 또는 invalidate)"
-                                  : "posts 데이터가 없어 Freshness를 계산할 대상이 없습니다."}
-                        </span>
-                    </div>
-                </section>
+                    }
+                />
 
-                <section className="page stack-sm">
-                    <div className="section-heading-row">
-                        <h3>Posts 쿼리 타입 (active / inactive)</h3>
+                <PostsActivitySection
+                    postsCacheActivity={postsCacheActivity}
+                    learningPoint={
                         <SectionLearningPoint
                             title="학습 포인트"
                             points={[
@@ -469,61 +211,8 @@ export default function CacheControl() {
                                 </>
                             }
                         />
-                    </div>
-                    <div className="query-activity-row">
-                        <span
-                            className={`status-pill ${
-                                postsCacheActivity === "active"
-                                    ? "status-success"
-                                    : postsCacheActivity === "inactive"
-                                      ? "status-warning"
-                                      : "status-neutral"
-                            }`}
-                        >
-                            {postsCacheActivity === "active"
-                                ? "ACTIVE"
-                                : postsCacheActivity === "inactive"
-                                  ? "INACTIVE"
-                                  : "DELETED/MISSING"}
-                        </span>
-                        <span className="muted">
-                            {postsCacheActivity === "active"
-                                ? "posts를 구독하는 옵저버(useQuery)가 있을 때."
-                                : postsCacheActivity === "inactive"
-                                  ? "구독자가 없을 때. 캐시는 gcTime 동안 남을 수 있음."
-                                  : "posts 캐시 엔트리가 없거나 아직 만들어지지 않았을 때."}
-                        </span>
-                    </div>
-                    <div className="status-candidates" aria-label="후보 상태">
-                        <span
-                            className={`status-option ${
-                                postsCacheActivity === "active"
-                                    ? "status-option-active"
-                                    : ""
-                            }`}
-                        >
-                            active
-                        </span>
-                        <span
-                            className={`status-option ${
-                                postsCacheActivity === "inactive"
-                                    ? "status-option-active"
-                                    : ""
-                            }`}
-                        >
-                            inactive
-                        </span>
-                        <span
-                            className={`status-option ${
-                                postsCacheActivity === "missing"
-                                    ? "status-option-active"
-                                    : ""
-                            }`}
-                        >
-                            deleted/missing
-                        </span>
-                    </div>
-                </section>
+                    }
+                />
             </aside>
     );
 }
