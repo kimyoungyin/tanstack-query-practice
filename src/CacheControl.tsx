@@ -2,7 +2,6 @@ import DEFAULT from "@/constants";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
 
 interface SectionLearningPointProps {
@@ -73,8 +72,8 @@ export default function CacheControl() {
         "active" | "inactive" | "missing"
     >("missing");
     const [postsQueryStatus, setPostsQueryStatus] = useState({
-        status: "",
-        fetchStatus: "idle",
+        status: "missing" as "pending" | "success" | "error" | "missing",
+        fetchStatus: "missing" as "fetching" | "paused" | "idle" | "missing",
         isPending: false,
         isFetching: false,
     });
@@ -83,13 +82,11 @@ export default function CacheControl() {
     >("missing");
 
     const queryClient = useQueryClient();
-    const { pathname } = useLocation();
 
     const staleTimeValue = Number(
         localStorage.getItem("staleTime") || DEFAULT.STALE_TIME,
     );
     const gcTimeValue = Number(localStorage.getItem("gcTime") || DEFAULT.GC_TIME);
-
     const resetOptions = () => {
         localStorage.removeItem("staleTime");
         localStorage.removeItem("gcTime");
@@ -97,23 +94,42 @@ export default function CacheControl() {
     };
 
     useEffect(() => {
+        const resolveFreshness = (
+            hasData: boolean,
+            dataUpdatedAt: number,
+            isInvalidated: boolean,
+        ): "fresh" | "stale" | "missing" => {
+            if (!hasData) return "missing";
+            if (isInvalidated) return "stale";
+            const isStaleByTime = Date.now() - dataUpdatedAt > staleTimeValue;
+            return isStaleByTime ? "stale" : "fresh";
+        };
+
         const updatePostsCacheActivity = () => {
-            const state = queryClient.getQueryState(["posts"]);
-            if (!state) {
+            const query = queryClient
+                .getQueryCache()
+                .find({ queryKey: ["posts"], exact: true });
+
+            if (!query) {
                 setPostsQueryStatus({
-                    status: "",
-                    fetchStatus: "idle",
+                    status: "missing",
+                    fetchStatus: "missing",
                     isPending: false,
                     isFetching: false,
                 });
                 setPostsCacheFreshness("missing");
+                setPostsCacheActivity("missing");
+                return;
             } else {
+                const state = query.state;
                 const isPendingNow = state.status === "pending";
                 const isFetchingNow = state.fetchStatus === "fetching";
-                const hasData = Boolean(queryClient.getQueryData(["posts"]));
-                const isFreshByTime =
-                    hasData &&
-                    Date.now() - state.dataUpdatedAt <= staleTimeValue;
+                const hasData = state.data != null;
+                const freshnessNow = resolveFreshness(
+                    hasData,
+                    state.dataUpdatedAt,
+                    state.isInvalidated,
+                );
 
                 setPostsQueryStatus({
                     status: state.status,
@@ -121,44 +137,21 @@ export default function CacheControl() {
                     isPending: isPendingNow,
                     isFetching: isFetchingNow,
                 });
-                setPostsCacheFreshness(
-                    hasData ? (isFreshByTime ? "fresh" : "stale") : "missing",
-                );
+                setPostsCacheFreshness(freshnessNow);
+                setPostsCacheActivity(query.isActive() ? "active" : "inactive");
             }
-            if (!state) {
-                setPostsCacheActivity("missing");
-                return;
-            }
-
-            const activeQueries = queryClient.getQueriesData({
-                queryKey: ["posts"],
-                exact: true,
-                type: "active",
-            });
-            if (activeQueries.length > 0) {
-                setPostsCacheActivity("active");
-                return;
-            }
-
-            const inactiveQueries = queryClient.getQueriesData({
-                queryKey: ["posts"],
-                exact: true,
-                type: "inactive",
-            });
-            if (inactiveQueries.length > 0) {
-                setPostsCacheActivity("inactive");
-                return;
-            }
-
-            setPostsCacheActivity(pathname === "/posts" ? "active" : "inactive");
         };
 
         updatePostsCacheActivity();
+        const intervalId = setInterval(updatePostsCacheActivity, 500);
         const unsubscribe = queryClient
             .getQueryCache()
             .subscribe(updatePostsCacheActivity);
-        return () => unsubscribe();
-    }, [pathname, queryClient, staleTimeValue]);
+        return () => {
+            clearInterval(intervalId);
+            unsubscribe();
+        };
+    }, [queryClient, staleTimeValue]);
 
     return (
         <aside className="control-rail stack-md" aria-label="캐시 옵션 제어 패널">
@@ -169,12 +162,24 @@ export default function CacheControl() {
                             title="학습 포인트"
                             points={[
                                 <>
-                                    <strong>staleTime:</strong> 현재{" "}
-                                    {staleTimeValue}ms ({staleTimeValue / 1000}초)
+                                    <strong>staleTime 기준:</strong> `dataUpdatedAt +
+                                    staleTime`까지를 <strong>fresh</strong>로 보고,
+                                    이후에는 <strong>stale</strong>로 판단합니다.
+                                    현재 {staleTimeValue}ms ({staleTimeValue / 1000}초)
+                                    입니다.
                                 </>,
                                 <>
-                                    <strong>gcTime:</strong> 현재 {gcTimeValue}ms (
-                                    {gcTimeValue / 1000}초)
+                                    <strong>gcTime 기준:</strong> 쿼리가
+                                    <strong> inactive</strong>가 된 뒤 캐시에
+                                    얼마나 남겨둘지 결정합니다. 현재 {gcTimeValue}
+                                    ms ({gcTimeValue / 1000}초)이며, active 쿼리는
+                                    GC 대상이 아닙니다.
+                                </>,
+                                <>
+                                    <strong>자동 재요청 판단:</strong> staleTime은
+                                    재요청 트리거(마운트/포커스/리커넥트 등)에서
+                                    백그라운드 refetch 여부 판단에 쓰이고, gcTime은
+                                    메모리 제거 시점 판단에 쓰입니다.
                                 </>,
                             ]}
                         />
@@ -244,6 +249,7 @@ export default function CacheControl() {
                                 "status는 pending/success/error의 3가지 공식 상태만 가집니다.",
                                 "fetchStatus는 fetching/paused/idle 중 하나입니다.",
                                 "isPending, isFetching은 위 상태를 읽기 쉽게 만든 파생 플래그입니다.",
+                                "캐시에 해당 쿼리 엔트리 자체가 없으면 이 패널에서는 status/fetchStatus를 '없음'으로 표시합니다.",
                             ]}
                         />
                     </div>
@@ -326,6 +332,15 @@ export default function CacheControl() {
                                 >
                                     error
                                 </span>
+                                <span
+                                    className={`status-option ${
+                                        postsQueryStatus.status === "missing"
+                                            ? "status-option-active"
+                                            : ""
+                                    }`}
+                                >
+                                    없음
+                                </span>
                             </div>
                         </div>
 
@@ -359,6 +374,15 @@ export default function CacheControl() {
                                 >
                                     idle
                                 </span>
+                                <span
+                                    className={`status-option ${
+                                        postsQueryStatus.fetchStatus === "missing"
+                                            ? "status-option-active"
+                                            : ""
+                                    }`}
+                                >
+                                    없음
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -370,8 +394,10 @@ export default function CacheControl() {
                         <SectionLearningPoint
                             title="학습 포인트"
                             points={[
-                                "Fresh/Stale은 staleTime과 dataUpdatedAt 비교로 판별합니다.",
-                                "캐시 엔트리가 없으면 없음 상태로 표시됩니다.",
+                                "Freshness는 데이터 유무 + 쿼리 stale 여부를 함께 봅니다.",
+                                "fresh: 데이터가 있고 stale이 아닐 때입니다.",
+                                "stale: 데이터가 있지만 staleTime 경과 또는 invalidate로 stale 처리된 상태입니다.",
+                                "없음: posts 데이터 자체가 없을 때(쿼리 미생성/삭제/초기 로딩 중 데이터 없음)입니다.",
                             ]}
                         />
                     </div>
@@ -393,10 +419,10 @@ export default function CacheControl() {
                         </span>
                         <span className="muted">
                             {postsCacheFreshness === "fresh"
-                                ? "캐시 데이터가 있고 staleTime 내에 있어 fresh 상태입니다."
+                                ? "posts 데이터가 있고 stale 상태가 아니므로 fresh입니다."
                                 : postsCacheFreshness === "stale"
-                                  ? "캐시 데이터가 있으나 staleTime이 지나 stale 상태입니다."
-                                  : "posts 캐시 데이터가 현재 메모리에 없습니다."}
+                                  ? "posts 데이터는 있지만 stale입니다. (staleTime 경과 또는 invalidate)"
+                                  : "posts 데이터가 없어 Freshness를 계산할 대상이 없습니다."}
                         </span>
                     </div>
                 </section>
@@ -408,29 +434,38 @@ export default function CacheControl() {
                             title="학습 포인트"
                             points={[
                                 <>
-                                    <strong>Inactive 쿼리:</strong> 기본값
-                                    `refetchType: "active"`에서는 즉시 refetch되지
-                                    않고 stale 처리만 됩니다.
+                                    <strong>active:</strong> `useQuery` 등으로 해당
+                                    `queryKey`를 <strong>구독하는 옵저버가 1개 이상</strong>
+                                    있을 때입니다. 화면에 마운트된 컴포넌트가 데이터를
+                                    “쓰고 있는” 상태에 가깝습니다.
                                 </>,
                                 <>
-                                    <strong>Query Key 매칭:</strong> 키가 다르거나
-                                    `exact: true`면 대상 쿼리를 놓칠 수 있습니다.
+                                    <strong>inactive:</strong> 마지막 옵저버가
+                                    사라져 <strong>구독자가 0</strong>이 되었을
+                                    때입니다. 쿼리/캐시 엔트리는 곧바로 사라지지 않고
+                                    `gcTime` 동안 남을 수 있습니다.
                                 </>,
                                 <>
-                                    <strong>`enabled: false` 쿼리:</strong> 자동
-                                    refetch 대상이 아니므로 직접 `refetch`해야 합니다.
+                                    <strong>다시 active:</strong> 같은 키로 `useQuery`가
+                                    다시 마운트되면 inactive였던 캐시를{" "}
+                                    <strong>즉시 재사용</strong>할 수 있고, 데이터가
+                                    stale이면 백그라운드 refetch 등이 이어질 수 있습니다.
                                 </>,
                                 <>
-                                    <strong>Race Condition:</strong> mutation 직후
-                                    서버 반영 전에 refetch하면 옛 데이터가 다시 올 수
-                                    있습니다.
+                                    <strong>`QueryClient` 필터와의 관계:</strong>{" "}
+                                    `getQueriesData` 등의{" "}
+                                    <code>type: &quot;active&quot; | &quot;inactive&quot;</code>는
+                                    위 구독 여부 기준으로 쿼리를 고릅니다.
+                                    `invalidateQueries`의 `refetchType`(기본{" "}
+                                    <code>&quot;active&quot;</code>)은{" "}
+                                    <strong>별개</strong>로, 무효화 뒤 누구를 refetch할지를
+                                    정하는 옵션입니다.
                                 </>,
                             ]}
                             footnote={
                                 <>
-                                    즉시 재요청이 필요하면 `refetchType: "all"`을
-                                    검토하고, 보수적으로는 `onSuccess`/`onSettled`에서
-                                    invalidate를 호출하는 패턴이 안전합니다.
+                                    inactive는 “데이터가 틀렸다”가 아니라 “지금은 아무도 구독하지
+                                    않는다”는 상태입니다. GC 시점은 `gcTime`으로 조절합니다.
                                 </>
                             }
                         />
@@ -453,10 +488,10 @@ export default function CacheControl() {
                         </span>
                         <span className="muted">
                             {postsCacheActivity === "active"
-                                ? "현재 관찰 중인 쿼리입니다."
+                                ? "posts를 구독하는 옵저버(useQuery)가 있을 때."
                                 : postsCacheActivity === "inactive"
-                                  ? "캐시에 있으나 현재 페이지에서 사용 중이 아닙니다."
-                                  : "posts 캐시가 삭제되었거나 아직 생성되지 않았습니다."}
+                                  ? "구독자가 없을 때. 캐시는 gcTime 동안 남을 수 있음."
+                                  : "posts 캐시 엔트리가 없거나 아직 만들어지지 않았을 때."}
                         </span>
                     </div>
                     <div className="status-candidates" aria-label="후보 상태">
