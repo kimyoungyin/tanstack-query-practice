@@ -14,6 +14,15 @@
   --warning-text: #8a4f11;
   --danger-bg: #ffefef;
   --danger-text: #a12b2b;
+  --control-refetch-bg: #eef4ff;
+  --control-refetch-border: #b8c9f5;
+  --control-refetch-text: #1e3a8a;
+  --control-invalidate-bg: #fff8eb;
+  --control-invalidate-border: #e8c48a;
+  --control-invalidate-text: #7c4a0c;
+  --control-prefetch-bg: #e8f8f5;
+  --control-prefetch-border: #8fd4c1;
+  --control-prefetch-text: #0f5c4a;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.06);
   --radius-sm: 0.5rem;
@@ -237,6 +246,133 @@ input {
 .button-row {
   display: grid;
   gap: var(--space-3);
+}
+
+/* 제어 패널: 행동 + 메서드명이 한눈에 보이는 버튼 */
+button.button-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  min-height: 2.85rem;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 650;
+  line-height: 1.35;
+  box-shadow: var(--shadow-sm);
+}
+
+button.button-control:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.button-control__label {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+}
+
+.button-control__method {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: ui-monospace, "SF Mono", "IBM Plex Sans KR", monospace;
+  letter-spacing: -0.02em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+  line-height: 1.2;
+  max-width: 11.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.button-control--refetch {
+  border-color: var(--control-refetch-border);
+  background: var(--control-refetch-bg);
+  color: var(--control-refetch-text);
+}
+
+.button-control--refetch:hover:not(:disabled) {
+  border-color: #8fa8e8;
+  background: #e4ecff;
+}
+
+.button-control--invalidate {
+  border-color: var(--control-invalidate-border);
+  background: var(--control-invalidate-bg);
+  color: var(--control-invalidate-text);
+}
+
+.button-control--invalidate:hover:not(:disabled) {
+  border-color: #d4a864;
+  background: #fff3dc;
+}
+
+.button-control--prefetch {
+  border-color: var(--control-prefetch-border);
+  background: var(--control-prefetch-bg);
+  color: var(--control-prefetch-text);
+}
+
+.button-control--prefetch:hover:not(:disabled) {
+  border-color: #6bc4aa;
+  background: #dff5ef;
+}
+
+.button-control--reset {
+  border-color: #e8a8a8;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.button-control--reset:hover:not(:disabled) {
+  border-color: #d98282;
+  background: #ffe4e4;
+}
+
+.button-control--remove {
+  border-color: #deb8b8;
+  background: #fff8f8;
+  color: #7c2d2d;
+}
+
+.button-control--remove:hover:not(:disabled) {
+  border-color: #c99595;
+  background: #ffeded;
+}
+
+.button-control--clear {
+  border-width: 2px;
+  border-color: #c45c5c;
+  background: #fff0f0;
+  color: #861f1f;
+}
+
+.button-control--clear:hover:not(:disabled) {
+  border-color: #a94444;
+  background: #ffe8e8;
+}
+
+.button-control--primary {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, #4667f0 0%, var(--accent) 100%);
+  color: #ffffff;
+}
+
+.button-control--primary:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+}
+
+.button-control--primary .button-control__method {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .button-primary {

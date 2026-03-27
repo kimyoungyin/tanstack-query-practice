@@ -13,14 +13,16 @@ const createPost = async (newPost: Omit<Post, "id">): Promise<Post> => {
 };
 
 interface ControlAction {
-    label: string;
+    title: string;
+    method: string;
     buttonClassName: string;
     onClick: () => void;
     disabled?: boolean;
 }
 
 function ControlActionRow({
-    label,
+    title,
+    method,
     buttonClassName,
     onClick,
     disabled,
@@ -28,11 +30,14 @@ function ControlActionRow({
     return (
         <div className="button-row">
             <button
-                className={buttonClassName}
+                type="button"
+                className={`button-control ${buttonClassName}`}
                 onClick={onClick}
                 disabled={disabled}
+                aria-label={`${title} (${method})`}
             >
-                {label}
+                <span className="button-control__label">{title}</span>
+                <span className="button-control__method">{method}</span>
             </button>
         </div>
     );
@@ -151,22 +156,25 @@ export default function LeftControl() {
 
     const postScopedActions: ControlAction[] = [
         {
-            label: "수동 새로고침 (refetchQueries)",
-            buttonClassName: "button-secondary",
+            title: "지금 서버에서 다시 가져오기",
+            method: "refetchQueries",
+            buttonClassName: "button-control--refetch",
             onClick: () =>
                 queryClient.refetchQueries({
                     queryKey: ["posts"],
                 }),
         },
         {
-            label: "캐시 무효화 (invalidateQueries)",
-            buttonClassName: "button-secondary",
+            title: "데이터를 stale로 표시하고 갱신 유도",
+            method: "invalidateQueries",
+            buttonClassName: "button-control--invalidate",
             onClick: () =>
                 queryClient.invalidateQueries({ queryKey: ["posts"] }),
         },
         {
-            label: "백그라운드 선요청 (prefetchQuery)",
-            buttonClassName: "button-secondary",
+            title: "화면 전 전에 posts 미리 채우기",
+            method: "prefetchQuery",
+            buttonClassName: "button-control--prefetch",
             onClick: () =>
                 queryClient.prefetchQuery({
                     queryKey: ["posts"],
@@ -174,25 +182,29 @@ export default function LeftControl() {
                 }),
         },
         {
-            label: "캐시 초기화 및 재요청 (resetQueries)",
-            buttonClassName: "button-danger",
+            title: "초기 상태로 되돌린 뒤 다시 요청",
+            method: "resetQueries",
+            buttonClassName: "button-control--reset",
             onClick: () => queryClient.resetQueries({ queryKey: ["posts"] }),
         },
         {
-            label: "캐시 제거 (removeQueries)",
-            buttonClassName: "button-danger-ghost",
+            title: "posts 캐시 항목만 삭제",
+            method: "removeQueries",
+            buttonClassName: "button-control--remove",
             onClick: () => queryClient.removeQueries({ queryKey: ["posts"] }),
         },
         {
-            label: "전체 캐시 삭제 (clear)",
-            buttonClassName: "button-danger",
+            title: "쿼리·뮤테이션 캐시 전부 비우기",
+            method: "clear",
+            buttonClassName: "button-control--clear",
             onClick: () => queryClient.clear(),
         },
         {
-            label: createPostMutation.isPending
-                ? "새 게시물 생성 중..."
-                : "게시물 생성(mutation) -> setQueryData",
-            buttonClassName: "button-primary",
+            title: createPostMutation.isPending
+                ? "새 글 추가 중…"
+                : "새 글 하나 넣고 캐시만 갱신",
+            method: "setQueryData",
+            buttonClassName: "button-control--primary",
             onClick: handleCreatePost,
             disabled: createPostMutation.isPending,
         },
@@ -401,7 +413,10 @@ export default function LeftControl() {
                     />
                 </div>
                 {postScopedActions.map((action) => (
-                    <ControlActionRow key={action.label} {...action} />
+                    <ControlActionRow
+                        key={action.method}
+                        {...action}
+                    />
                 ))}
             </section>
         </aside>

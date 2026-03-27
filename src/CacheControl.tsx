@@ -207,13 +207,30 @@ export default function CacheControl() {
 
                     <div className="button-row">
                         <button
-                            className="button-primary"
+                            type="button"
+                            className="button-control button-control--primary"
                             onClick={() => window.location.reload()}
+                            aria-label="저장한 staleTime·gcTime으로 페이지 새로고침 (localStorage 반영)"
                         >
-                            새로고침하여 옵션 적용
+                            <span className="button-control__label">
+                                저장한 설정으로 새로고침
+                            </span>
+                            <span className="button-control__method">
+                                staleTime / gcTime
+                            </span>
                         </button>
-                        <button className="button-danger" onClick={resetOptions}>
-                            옵션 초기화 및 새로고침
+                        <button
+                            type="button"
+                            className="button-control button-control--reset"
+                            onClick={resetOptions}
+                            aria-label="localStorage의 staleTime·gcTime을 지우고 새로고침"
+                        >
+                            <span className="button-control__label">
+                                저장된 옵션 지우고 새로고침
+                            </span>
+                            <span className="button-control__method">
+                                localStorage 초기화
+                            </span>
                         </button>
                     </div>
                 </section>
