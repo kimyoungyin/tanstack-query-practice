@@ -1,4 +1,4 @@
-배포 링크: [hhttps://tanstack-query-visualizer.netlify.app/](https://tanstack-query-visualizer.netlify.app/)
+배포 링크: [https://tanstack-query-visualizer.netlify.app/](https://tanstack-query-visualizer.netlify.app/)
 
 # 개요
 
@@ -72,209 +72,112 @@ staleTime과 gcTime을 커스텀으로 설정할 수 있도록 하여, 데이터
 
 ---
 
-# 2. 현재 페이지 구성과 학습 포인트
+# 1. 현재 페이지 구성과 학습 포인트
+
+## 전체 레이아웃
+
+현재 앱은 3열 학습 UI로 구성됩니다.
+
+- 좌측: `LeftControl` (QueryClient 메서드 실행 패널)
+- 중앙: 라우트 페이지(`HomePage`, `PostsPage`)
+- 우측: `CacheControl` (상태 시각화/옵션 설정 패널)
 
 ## HomePage (`/`)
 
-- TanStack Query 실습의 **허브 페이지**입니다.
-- 주요 기능:
-    - 전체 캐시를 무효화/완전 삭제하는 버튼 제공
-    - `["posts"]` 쿼리 캐시 유무를 `StatusBox`로 시각화
-    - `PostsPage`로 이동하는 네비게이션 제공
+- `posts` 쿼리를 **구독하지 않는** 허브 페이지입니다.
+- `PostsPage`로 이동하는 링크를 제공합니다.
+- 이 페이지 자체는 데이터 렌더링보다 학습 흐름 진입점 역할에 가깝습니다.
 
 ## PostsPage (`/posts`)
 
-- **기본 개념 학습용 메인 페이지**입니다.
-- 학습 포인트:
-    - `useQuery`로 게시물 목록 로딩
-    - `isPending`, `isFetching` 상태를 `StatusBox`로 시각화
-    - `queryClient.invalidateQueries`, `removeQueries`, `resetQueries` 버튼으로 캐시 무효화/삭제/리셋 동작 비교
-    - `useMutation` + `queryClient.setQueryData`로 새 게시물 추가 시 캐시 업데이트
+- `["posts"]` 쿼리를 실제로 구독하는 페이지입니다.
+- `useQuery({ queryKey: ["posts"] })`를 통해 목록을 렌더링합니다.
+- 초기 pending 상태와 캐시 삭제 후 재요청 흐름을 화면에서 확인할 수 있습니다.
+
+## LeftControl (`좌측`)
+
+- `refetchQueries`, `invalidateQueries`, `prefetchQuery`, `resetQueries`, `removeQueries`, `clear`, `setQueryData`를 실행합니다.
+- 각 버튼은 `["posts"]` 쿼리 상태/캐시에 서로 다른 영향을 주도록 구성되어 있습니다.
+
+## CacheControl (`우측`)
+
+- 현재는 섹션/훅 분리 구조로 리팩터링되어 가독성을 높였습니다.
+- 주요 파일:
+  - 섹션 컴포넌트: `src/components/cache-control/*Section.tsx`
+  - 공용 학습 모달: `src/components/cache-control/SectionLearningPoint.tsx`
+  - 상태 동기화 훅: `src/components/cache-control/usePostsCacheState.ts`
+  - 옵션 제어 훅: `src/components/cache-control/useCacheTimingControls.ts`
+  - 타입/배럴: `src/components/cache-control/types.ts`, `src/components/cache-control/index.ts`
 
 ---
 
-# 3. 상태 전이 시나리오 (회귀 체크리스트)
+# 2. 상태 전이 시나리오 (버튼 순서 체크리스트)
 
-아래 시나리오는 `CacheControl` 패널의 상태 표시가 TanStack Query v5 동작과 일치하는지 검증하기 위한 기준입니다.
+아래 순서대로 버튼을 눌러 `CacheControl` 표시값이 예상과 일치하는지 확인합니다.
 
-## 전제 조건
+## 전제
 
-- `["posts"]` 쿼리는 `PostsPage`에서만 구독됩니다.
-- `HomePage`는 `posts` 쿼리를 구독하지 않습니다.
-- 기본 예시 값: `staleTime = 6000ms`, `gcTime = 12000ms`
-- Freshness 표기 기준:
-    - `fresh`: 데이터가 있고 stale이 아님
-    - `stale`: 데이터가 있지만 staleTime 경과 또는 invalidated
-    - `없음`: 데이터 자체가 없음(미생성/삭제/GC 완료)
+- `posts` 구독자는 `PostsPage`만 존재
+- `HomePage`는 미구독
+- 예시 기준값: `staleTime = 6000ms`, `gcTime = 12000ms`
 
-## 시나리오 A: 홈에서 prefetch 후 시간 경과
+## 순서
 
-1. 홈(`/`) 진입 직후
-    - 기대값:
-        - activity: `DELETED/MISSING`
-        - freshness: `없음`
-        - status/fetchStatus: `없음`
-2. `prefetchQuery` 클릭
-    - 기대값:
-        - activity: `INACTIVE`
-        - status: `success`
-        - fetchStatus: 완료 후 `idle`
-        - freshness: `fresh`
-3. `staleTime` 경과 대기(약 6초)
-    - 기대값:
-        - activity: `INACTIVE`
-        - freshness: `stale`
-4. `gcTime`까지 추가 대기(총 약 12초)
-    - 기대값:
-        - activity: `DELETED/MISSING`
-        - freshness: `없음`
-        - status/fetchStatus: `없음`
+1. 홈(`/`)에서 `clear` 클릭  
+   - 기대: `activity = DELETED/MISSING`, `freshness = 없음`, `status/fetchStatus = 없음`
 
-## 시나리오 B: posts에서 stale 만든 뒤 홈으로 이동
+2. 홈(`/`)에서 `prefetchQuery` 클릭  
+   - 기대: `activity = INACTIVE`, `status = success`, `fetchStatus = idle`, `freshness = fresh`
 
-1. `clear` 클릭으로 시작 상태 초기화
-2. `/posts` 이동 후 초기 요청 완료 대기
-    - 기대값:
-        - activity: `ACTIVE`
-        - freshness: `fresh`
-3. `/posts`에서 `invalidateQueries` 클릭
-    - 기대값:
-        - active 구독 중이므로 백그라운드 refetch 가능
-        - 최종 freshness는 `stale` 또는 빠르게 재검증 후 `fresh`로 복귀 가능
-4. 즉시 홈(`/`) 이동
-    - 기대값:
-        - activity: `INACTIVE`
-        - stale 상태였던 경우 홈에서도 `stale` 유지
-        - 홈 이동 시 `stale -> fresh` 역전이 발생하지 않아야 함
+3. `staleTime`(약 6초) 대기  
+   - 기대: `activity = INACTIVE`, `freshness = stale`
 
-## 시나리오 C: 주요 메서드별 기대 변화
+4. `gcTime`까지 추가 대기(총 약 12초)  
+   - 기대: `activity = DELETED/MISSING`, `freshness = 없음`
 
-- `refetchQueries`
-    - 매칭 쿼리를 즉시 재요청합니다.
-    - active/inactive 여부와 옵션에 따라 실제 네트워크 요청 대상이 달라질 수 있습니다.
-- `invalidateQueries`
-    - 쿼리를 stale로 마킹합니다.
-    - 기본값에서는 active 쿼리만 즉시 refetch합니다.
-- `prefetchQuery`
-    - 미리 캐시를 채우며, 홈에서는 보통 `INACTIVE + fresh/stale` 흐름을 확인할 수 있습니다.
-- `resetQueries`
-    - 쿼리 상태를 초기화하고 active 쿼리는 다시 요청할 수 있습니다.
-- `removeQueries`
-    - 매칭 쿼리 엔트리를 캐시에서 제거하여 `없음` 상태로 전환됩니다.
-- `clear`
-    - Query/Mutation 캐시 전체를 비우며 `posts`도 `없음` 상태가 됩니다.
+5. `PostsPage` 이동  
+   - 기대: `activity = ACTIVE`  
+   - 초기엔 `pending/fetching` 가능, 완료 후 `success/idle`
 
-## 체크 포인트 요약
+6. `invalidateQueries` 클릭  
+   - 기대: stale 마킹 + active인 경우 백그라운드 refetch
 
-- `fresh -> stale -> 없음` 흐름은 가능해야 합니다.
-- `삭제(없음)`은 stale 때문이 아니라 `inactive + gcTime` 조건으로 발생합니다.
-- `HomePage`는 미구독 페이지이므로 activity는 `INACTIVE` 또는 `DELETED/MISSING`이 정상입니다.
+7. 즉시 홈(`/`)으로 이동  
+   - 기대: `activity = INACTIVE`  
+   - stale였던 경우 홈에서도 stale 유지(역전 방지)
+
+8. `removeQueries` 클릭  
+   - 기대: `DELETED/MISSING` 및 freshness `없음`
+
+9. 필요 시 `refetchQueries`/`resetQueries`/`setQueryData` 버튼으로 상태 전이를 추가 확인
+
+핵심 체크:
+
+- `fresh -> stale -> 없음` 흐름이 가능해야 함
+- `없음`은 stale 때문이 아니라 **inactive + gcTime 경과** 또는 제거 메서드로 발생
 
 ---
 
-# 1. 기본 셋업
-
-## TanStack Query v5 설치 및 설정
-
-### 1. 패키지 설치
+# 3. 실행 방법
 
 ```bash
-npm install @tanstack/react-query
+npm install
+npm run dev
 ```
 
-### 2. QueryProvider 설정
+추가 명령:
 
-`src/query-provider.tsx` 파일을 생성하여 QueryClient 인스턴스를 생성하고 QueryProvider 컴포넌트를 만듭니다.
+- `npm run build`: 타입체크 + 프로덕션 빌드
+- `npm run lint`: ESLint 점검
+- `npm run preview`: 빌드 결과 프리뷰
 
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+---
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 60 * 1000, // 1분
-        },
-    },
-});
+# 4. 현재 기술 스택
 
-interface QueryProviderProps {
-    children: ReactNode;
-}
-
-export function QueryProvider({ children }: QueryProviderProps) {
-    return (
-        <QueryClientProvider client={queryClient}>
-            {children}
-        </QueryClientProvider>
-    );
-}
-```
-
-### 3. App에 QueryProvider 적용
-
-`src/main.tsx`에서 App 컴포넌트를 QueryProvider로 감쌉니다.
-
-```tsx
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "@/index.css";
-import App from "@/App";
-import { QueryProvider } from "@/query-provider";
-
-createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-        <QueryProvider>
-            <App />
-        </QueryProvider>
-    </StrictMode>,
-);
-```
-
-## @ Alias 설정
-
-### 1. Vite 설정 (`vite.config.ts`)
-
-```ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-
-export default defineConfig({
-    plugins: [react()],
-    resolve: {
-        alias: {
-            "@": path.resolve(__dirname, "./src"),
-        },
-    },
-});
-```
-
-### 2. TypeScript 설정 (`tsconfig.app.json`)
-
-```json
-{
-    "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["./src/*"]
-        }
-    }
-}
-```
-
-### 3. 사용 예시
-
-기존 상대 경로 import를 `@` alias로 변경할 수 있습니다:
-
-```tsx
-// 기존
-import App from "./App.tsx";
-import { QueryProvider } from "./query-provider.tsx";
-import "./index.css";
-
-// @ alias 사용
-import App from "@/App";
-import { QueryProvider } from "@/query-provider";
-import "@/index.css";
-```
+- React 19
+- TypeScript 5
+- Vite 7
+- TanStack Query v5 (`@tanstack/react-query`)
+- React Router DOM 7
+- React Query Devtools
